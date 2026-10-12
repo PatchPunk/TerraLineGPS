@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.48 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.49 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -73,3 +73,5 @@ MP TESTBUILD 0.9.9.48 (Kursliste nach Hofwechsel)
 - Verspaetete Antworten anderer Hoefe werden ignoriert. Server-/Client-Logs zeigen REQUEST/SNAPSHOT-Abgleich.
 - Versionsanzeige aller drei Menue-Seiten nutzt zentral GPSConfig.version statt einer fest codierten alten Version.
 - Hofgetrenntes GPS AN/AUS aus 0.9.9.47 unveraendert. Kein Server-Neustart-Test in diesem Build nachgewiesen.
+
+Version 0.9.9.49: Korrigiert MP-Kursabfrage (REQUEST ohne Payload), stabilisiert Kurs-Speicherpfad bei tempsavegame und testet clientseitige Lenkeingabe via Drivable.axisSide. MP-Lenkung experimentell, noch nicht im LS25 bestaetigt.

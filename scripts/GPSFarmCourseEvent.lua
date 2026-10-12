@@ -98,6 +98,9 @@ function E:readStream(streamId, connection)
             -- malformed larger stream without retaining unbounded records.
             if i<=256 then p.courses[#p.courses+1] = course end
         end
+    elseif operation == E.REQUEST then
+        -- REQUEST intentionally has no payload. Previous versions treated it as
+        -- an unknown opcode, so no initial/farm-change snapshot reached clients.
     else
         -- Unknown opcode has no payload and must never mutate game state.
         return

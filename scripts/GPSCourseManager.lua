@@ -9,6 +9,9 @@ local function directory()
     return info and info.savegameDirectory
 end
 local function filename()
+    -- GIANTS replaces missionInfo.savegameDirectory with `tempsavegame`
+    -- during a save. Our data must remain bound to the ORIGINAL save slot.
+    if M.loadedPath~=nil then return M.loadedPath end
     local dir=directory()
     if type(dir)~="string" or #dir<3 then return nil end
     return dir.."/terralineGPS.xml"
@@ -58,9 +61,11 @@ function M.reset()
     M.cachedCoursesByFarm={};M.awaitingFarmSnapshot=nil
 end
 function M.ensureLoaded()
-    if remoteClient() then return end  -- Only the authoritative server reads XML.
+    if remoteClient() or M.loadedPath~=nil then return end
+    -- Load exactly ONCE per map session. A savegameDirectory change on save
+    -- must not reset the authoritative list to an empty tempsavegame snapshot.
     local path=filename()
-    if not path or M.loadedPath==path then return end
+    if not path then return end
     M.courses={};M.fieldNames={};M.nextId=1;M.loadedPath=path
     if type(fileExists)~="function" or not fileExists(path) or type(loadXMLFile)~="function" then
         log("SERVER-LOAD: keine Kursdatei unter "..tostring(path).." (neuer Stand oder Datei fehlt)")
@@ -130,10 +135,9 @@ function M.persist()
     return true,"Im Hof-Spielstand gespeichert"
 end
 
--- FS25 dedicated saves may rebuild/clean the savegame directory. A custom
--- XML written at course creation is not automatically included in the game's
--- normal save. Re-write it AFTER the game's saveSavegame call finishes.
--- The authoritative server retains the course table in memory throughout.
+-- FS25 saves may temporarily redirect missionInfo.savegameDirectory.
+-- Keep our authoritative course table and the original slot path stable;
+-- write to that original slot again after the GIANTS save completes.
 function M.installSaveHook()
     if M.saveHookInstalled then return true end
     if type(FSBaseMission)~="table" or type(FSBaseMission.saveSavegame)~="function"
@@ -144,7 +148,7 @@ function M.installSaveHook()
         if g_server==nil or mission~=g_currentMission then return end
         local ok,msg=M.persist()
         if ok then
-            log("SERVER-SAVE-HOOK: "..tostring(#M.courses).." Hofkurse in "..tostring(filename()).." geschrieben")
+            log("SERVER-SAVE-HOOK: "..tostring(#M.courses).." Hofkurse in persistentem Spielstand "..tostring(filename()).." geschrieben")
         else
             log("SERVER-SAVE-HOOK FEHLER: "..tostring(msg))
         end

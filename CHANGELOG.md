@@ -1,3 +1,10 @@
+## 0.9.9.49 – 12.10.2026 (EXPERIMENTELL / KURSABFRAGE + SPEICHERPFAD + MP-LENKEINGABE)
+- GPSFarmCourseEvent: REQUEST hat absichtlich keinen Payload und darf nicht als unbekannter Opcode verworfen werden. Beitritt/Hofwechsel laden jetzt initial Kurse vom Server.
+- Kursmanager: Original-Spielstanddatei beim ersten Load fixieren, nicht erneut aus tempsavegame laden oder die Kurstabelle leeren. Speichervorgang behält Hofkurse.
+- MP-Client: experimentelle Korrektur über Drivable.axisSide mit normaler Netzwerk-Dirtystate-Synchronisierung, lokaler Fahrer-/Fahrzeugprüfung und manueller Übersteuerung; keine Änderungen am bisherigen SP-Physikpfad.
+- Tests: 25 Lua-Skripte Syntax, XML/ZIP, simulierte Server-REQUEST-Verarbeitung, tempsavegame-Persistenz und MP-Lenkeingabe bestanden.
+- Echte Ingame-Prüfung, besonders gleichzeitige Lenkung auf Dedicated Server, weiterhin offen.
+
 ## 0.9.9.48 – 12.10.2026 (EXPERIMENTELL / HOFKURS-CACHE + VERSIONSANZEIGE)
 - Beim Hofwechsel zerstört der Client seine vorherige Hofkurs-Liste nicht mehr; bestätigte Snapshots sind strikt per Farm-ID zwischengespeichert.
 - Sofortige Anzeige der passenden Hofliste und erneute Serverabfrage; verspätete Antworten für falsche Farm werden ignoriert.

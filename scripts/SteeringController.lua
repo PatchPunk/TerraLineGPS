@@ -19,7 +19,7 @@ function C.toggle(vehicle)
     if not C.install(vehicle) then return "GPS: Lenk-Hook nicht verfuegbar" end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>30 then return "GPS: Aktivierung nur bis 30 km/h" end
-    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false
+    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkPathLogged=false
     C.reason="Aktiv | Spur "..tostring(C.lockedTrack)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
     return "GPS Lenkung EIN | Spur "..tostring(C.lockedTrack)
@@ -127,6 +127,58 @@ function C.install(vehicle)
         log("Hook fehlgeschlagen: "..tostring(err));return false
     end
     C.hookedVehicles[vehicle]=original;C.hookInstalled=true
+    if g_client~=nil and g_server==nil and type(vehicle.setSteeringInput)=="function" then
+        local originalInput=vehicle.setSteeringInput
+        vehicle.setSteeringInput=function(self,value,isAnalog,deviceCategory,...)
+            if C.enabled and self==C.vehicle and type(value)=="number" and math.abs(value)>0.25 then
+                C.stop("MP: Manueller Lenkeingriff")
+            end
+            return originalInput(self,value,isAnalog,deviceCategory,...)
+        end
+    end
     log("Fahrzeug-Hook aktiv: "..tostring(vehicle.getName and vehicle:getName() or vehicle))
     return true
+end
+
+-- Dedicated MP: Drivable:onUpdate runs on the driving CLIENT and transmits
+-- spec_drivable.axisSide via the normal dirty update stream. On a remote
+-- client the legacy updateVehiclePhysics hook may never run. Do not send
+-- custom steering RPCs and do not change the server's vehicle state directly.
+-- Only the locally entered vehicle receives commands.
+function C.updateNetworkSteering(dt,vehicle)
+    if g_client==nil or g_server~=nil or not C.enabled then return end
+    if vehicle==nil or vehicle~=C.vehicle then C.stop("MP: Fahrzeug verlassen/gewechselt");return end
+    if vehicle.isClient~=true or vehicle.spec_drivable==nil then
+        C.stop("MP: Kein lokales Drivable-Fahrzeug");return
+    end
+    if type(vehicle.getIsEntered)=="function" and not vehicle:getIsEntered() then
+        C.stop("MP: Fahrer ausgestiegen");return
+    end
+    local spec=vehicle.spec_drivable
+    if type(vehicle.raiseDirtyFlags)~="function" or spec.dirtyFlag==nil then
+        C.stop("MP: Lenkeingabe-Synchronisierung nicht verfuegbar");return
+    end
+    -- The normal local steering input callback is monitored by install().
+    -- Manual movement above the threshold disengages GPS immediately.
+    local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+    if speed>30 then C.stop("MP: Geschwindigkeit ueber 30 km/h");return end
+    if spec.doHandbrake and speed>=2 then C.stop("MP: Handbremse");return end
+    if speed<2 then
+        if not C.waitingForMotion then
+            C.waitingForMotion=true
+            log("MP: GPS wartet bei Stillstand auf Weiterfahrt")
+        end
+        C.lastValue=0;C.guardStart=nil;C.guardClock=0
+        -- Never command a parked vehicle to turn.
+        return
+    end
+    if C.waitingForMotion then C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv") end
+    local value=C.compute(vehicle,dt)
+    if value==nil then return end
+    spec.axisSide=value
+    vehicle:raiseDirtyFlags(spec.dirtyFlag)
+    if not C.networkPathLogged then
+        C.networkPathLogged=true
+        log("MP-CLIENT: Lenksignal ueber Drivable.axisSide / dirtyFlag aktiv")
+    end
 end

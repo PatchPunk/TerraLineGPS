@@ -494,6 +494,9 @@ function GPSFieldTest:update(dt)
         end
     end
     GPSTrackPosition.update(dt,GPSVehicleDetector.getCurrentVehicle())
+    if GPSSteeringController.updateNetworkSteering then
+        GPSSteeringController.updateNetworkSteering(dt,GPSVehicleDetector.getCurrentVehicle())
+    end
     self.totalMs=self.totalMs+(dt or 0)
     self.clock=self.clock+(dt or 0)
     if self.clock<GPSConfig.checkIntervalMs then return end
