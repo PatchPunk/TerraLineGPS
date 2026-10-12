@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modDesc descVersion="114">
+  <author>TerraLine GPS Project</author>
+  <version>0.9.9.44</version>
+  <title><en>TerraLine GPS</en><de>TerraLine GPS</de></title>
+  <iconFilename>icon_terraline.dds</iconFilename>
+  <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Singleplayer only.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. Nur Einzelspieler.</de></description>
+  <multiplayer supported="false" />
+  <l10n>
+    <text name="input_GPS_FIELD_POWER_TOGGLE"><de>TerraLine GPS Hauptschalter ein/aus</de><en>Toggle TerraLine GPS power</en></text>
+    <text name="input_GPS_FIELD_ASSIST_TOGGLE"><de>GPS Spurhaltung ein/aus</de><en>Toggle GPS steering assist</en></text>
+    <text name="input_GPS_FIELD_AB_MARK"><de>GPS Punkt A/B setzen</de><en>Set GPS A/B point</en></text>
+    <text name="input_GPS_FIELD_SHIFT_RIGHT"><de>GPS-Spur samt Arbeitsgrenzen rechts verschieben</de><en>Shift GPS A/B line right</en></text>
+    <text name="input_GPS_FIELD_SHIFT_LEFT"><de>GPS-Spur samt Arbeitsgrenzen links verschieben</de><en>Shift GPS A/B line left</en></text>
+    <text name="input_GPS_FIELD_MENU_TOGGLE"><de>GPS Einstellungsmenue oeffnen/schliessen</de><en>Open/close GPS settings menu</en></text>
+    <text name="input_GPS_FIELD_ROTATE_90"><de>TerraLine GPS Spur 90 Grad drehen</de><en>TerraLine GPS rotate lane 90 degrees</en></text>
+  </l10n>
+  <actions>
+    <action name="GPS_FIELD_POWER_TOGGLE" category="VEHICLE" />
+    <action name="GPS_FIELD_ASSIST_TOGGLE" category="VEHICLE" />
+    <action name="GPS_FIELD_AB_MARK" category="VEHICLE" />
+    <action name="GPS_FIELD_SHIFT_RIGHT" category="VEHICLE" />
+    <action name="GPS_FIELD_SHIFT_LEFT" category="VEHICLE" />
+    <action name="GPS_FIELD_MENU_TOGGLE" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_90" category="VEHICLE" />
+  </actions>
+  <inputBinding>
+    <actionBinding action="GPS_FIELD_POWER_TOGGLE">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_t" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ASSIST_TOGGLE">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_x" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_AB_MARK">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_b" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_SHIFT_RIGHT">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_pageup" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_SHIFT_LEFT">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_pagedown" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_MENU_TOGGLE">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_m" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_90">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_r" />
+    </actionBinding>
+  </inputBinding>
+  <extraSourceFiles>
+    <sourceFile filename="scripts/Config.lua" />
+    <sourceFile filename="scripts/GPSDisplaySettings.lua" />
+    <sourceFile filename="scripts/GPSLineVisuals.lua" />
+    <sourceFile filename="scripts/Logger.lua" />
+    <sourceFile filename="scripts/VehicleDetector.lua" />
+    <sourceFile filename="scripts/ImplementDetector.lua" />
+    <sourceFile filename="scripts/ABLineManager.lua" />
+    <sourceFile filename="scripts/GPSCourseManager.lua" />
+    <sourceFile filename="scripts/GPSAutoMirror.lua" />
+    <sourceFile filename="scripts/GPSDeviceOffsetProbe.lua" />
+    <sourceFile filename="scripts/GPSDeviceOffsetAuto.lua" />
+    <sourceFile filename="scripts/TrackGenerator.lua" />
+    <sourceFile filename="scripts/TrackPosition.lua" />
+    <sourceFile filename="scripts/TrackRenderer.lua" />
+    <sourceFile filename="scripts/ABPreviewRenderer.lua" />
+    <sourceFile filename="scripts/SteeringDiagnostics.lua" />
+    <sourceFile filename="scripts/SteeringController.lua" />
+    <sourceFile filename="scripts/GPSMenu.lua" />
+    <sourceFile filename="scripts/GPSMenuSymbols.lua" />
+        <sourceFile filename="scripts/GPSMenuPage1.lua" />
+        <sourceFile filename="scripts/GPSDeveloperMenu.lua" />
+        <sourceFile filename="scripts/GPSMenuPage4.lua" />
+    <sourceFile filename="scripts/GPSMenuPage3.lua" />
+    <sourceFile filename="scripts/GPSFieldTest.lua" />
+  </extraSourceFiles>
+</modDesc>

@@ -1,0 +1,27 @@
+# Lokale Spiel-/Testdateien und Archivartefakte
+*.zip
+*.log
+log.txt
+log(*).txt
+*.bak
+*.tmp
+*.old
+*_backup/
+backup/
+backups/
+savegame*/
+
+# Python/Editor/Betriebssystem
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Gebaute ZIPs; DDS/WAV bleiben absichtlich versioniert
+build/
+dist/

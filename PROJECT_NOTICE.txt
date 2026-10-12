@@ -1,0 +1,9 @@
+TerraLine GPS - private Entwicklung, Stand 2026-10-12
+
+Dieses Projekt ist fuer die private Nutzung und ein privates GitHub-Repository
+vorbereitet. Mit dieser Kopie wird keine Open-Source-Lizenz erteilt.
+Vor einer Weitergabe muessen Urheber- und Nutzungsrechte fuer Code, Grafiken
+und Sounds ueberprueft werden. Ein Kommentar mit Projektmarkierung ist kein
+technischer Kopierschutz und kein rechtlicher Eigentumsnachweis.
+
+Projektstand: TerraLine GPS v0.9.9.44 (aus v0.9.9.43)
