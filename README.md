@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.55** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.56** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -168,3 +168,11 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - Kaufzustand als Konfiguration `terraLineGPS=2` pro Fahrzeug durch das Spiel gespeichert und synchronisiert. Bestehende Fahrzeuge ohne Kaufhistorie gelten als **nicht ausgerüstet**, keine verdeckten Kosten. GPS-Alt+T ist sonst gesperrt.
 - Normaler Tacho `SpeedMeterDisplay.draw`: **TL GPS AUS** grau, **TL GPS BEREIT** grün, **TL AUTO AKTIV** grün. Ohne Ausstattung keine Anzeige. GPS-Hauptschalter nach Einstieg standardmäßig AUS und bei Wechsel pro Fahrzeug getrennt.
 - Beibehalten: bestätigte 30-km/h-MP-Lenkung, Hofkurse und Server-Persistenz bytegenau unverändert. Lokale Prüfungen: 27 Lua-Dateien syntaktisch, Shoppreis/Eligibility, Tachozustände und Fahrzeugwechsel/Entfernung als Tests; **echter GIANTS-Shop/MP-Test noch offen**. Projekt bleibt experimentell.
+
+
+### 0.9.9.56 – Kritischer Crash-Hotfix
+- Test mit v0.9.9.55 scheiterte mit unendlichem `GPSVehicleEquipment.lua:62: attempt to call a table value` auf Dedicated Server **und** Client, ca. 1487 Fehler pro Log, danach `No more interval timers`. V55 **nicht verwenden**.
+- Ursache: `Utils.overwrittenFunction` übergibt Originalargument `manager` als erstes Argument und die `superFunc` als zweites. Das v55-Hook hatte beide vertauscht und versuchte, `manager(...)` auszuführen. Korrigiert zu `getConfigurationsFromXML(manager, superFunc, xmlFile,...)` mit `superFunc(manager,xmlFile,...)`.
+- Optionale Erweiterungsfehler werden einmalig geloggt und Shop-Erweiterung lokal deaktiviert; Original-GIANTS-Loader läuft weiter.
+- GIANTS-Quell-Dokumentation geprüft; Lua 5.4-Syntax für 27 Modscripts, Mock-GIANTS-Fahrzeuglade- und Konfigurations-Tests inkl. 200 wiederholten Fehleraufrufen bestanden. Die echte Shop-/Werkstatt-Integration muss noch im Spiel bestätigt werden.
+- **SteeringController, GPSFieldTest, GPSCourseManager, GPSFarmCourseEvent, GPSTachoStatus exakt unverändert** gegenüber v55. PR weiterhin Draft.

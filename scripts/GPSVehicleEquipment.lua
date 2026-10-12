@@ -1,4 +1,4 @@
--- TerraLine GPS 0.9.9.55 | Native FS25 vehicle shop configuration.
+-- TerraLine GPS 0.9.9.56 | Native FS25 vehicle shop configuration.
 -- Follows the stock Precision Farming crop/manure sensor configuration path.
 GPSVehicleEquipment = {configName = "terraLineGPS", price = 10000, hookInstalled = false}
 local E = GPSVehicleEquipment
@@ -55,17 +55,17 @@ function E.ensureRegistered()
     return true
 end
 
-function E.getConfigurationsFromXML(superFunc, manager, xmlFile, key, baseDir, customEnvironment, isMod, storeItem, ...)
-    -- Register *before* the GIANTS loader runs so the descriptor is available
-    -- when the game builds the standard vehicle shop UI/configuration streams.
-    E.ensureRegistered()
-    local configs,defaults=superFunc(manager,xmlFile,key,baseDir,customEnvironment,isMod,storeItem,...)
-    if not E.isEligible(xmlFile,storeItem) then return configs,defaults end
-    if not E.ensureRegistered() or type(VehicleConfigurationItem.new)~="function" then
-        return configs,defaults
+-- Utils.overwrittenFunction inserts superFunc AFTER the original first argument.
+-- ConfigurationUtil.getConfigurationsFromXML is called with manager as its first
+-- argument. Swapping manager and superFunc caused an error on EVERY load/update
+-- call in v0.9.9.55 (a table was called as a function).
+local function addTerraLineOptions(xmlFile, storeItem, configs, defaults)
+    if not E.isEligible(xmlFile, storeItem) then return configs, defaults end
+    if not E.ensureRegistered() or type(VehicleConfigurationItem.new) ~= "function" then
+        return configs, defaults
     end
     configs=configs or {}; defaults=defaults or {}
-    if configs[E.configName]~=nil then return configs,defaults end
+    if configs[E.configName] ~= nil then return configs, defaults end
     local without=VehicleConfigurationItem.new(E.configName)
     without:setIndex(1)
     without.name="Ohne TerraLine GPS"
@@ -80,7 +80,24 @@ function E.getConfigurationsFromXML(superFunc, manager, xmlFile, key, baseDir, c
     else
         defaults[E.configName]=1
     end
-    return configs,defaults
+    return configs, defaults
+end
+
+function E.getConfigurationsFromXML(manager, superFunc, xmlFile, key, baseDir, customEnvironment, isMod, storeItem, ...)
+    -- Preserve the complete original GIANTS loading chain, including all other
+    -- mods that hooked this method. Do not catch errors from the base game.
+    local configs,defaults=superFunc(manager,xmlFile,key,baseDir,customEnvironment,isMod,storeItem,...)
+    if E.augmentationFailed then return configs,defaults end
+    -- The optional TerraLine addition must never stop the entire vehicle
+    -- loader. On failure, log ONCE and disable this shop extension for the
+    -- remainder of this session (no per-frame error storms).
+    local ok,newConfigs,newDefaults=pcall(addTerraLineOptions,xmlFile,storeItem,configs,defaults)
+    if not ok then
+        E.augmentationFailed=true
+        report("FEHLER: Shop-Erweiterung fuer diese Sitzung deaktiviert: "..tostring(newConfigs))
+        return configs,defaults
+    end
+    return newConfigs,newDefaults
 end
 
 function E.install()

@@ -1,3 +1,10 @@
+## 0.9.9.56 – 12.10.2026 (KRITISCHER SHOP-CRASH-HOTFIX)
+- Nutzerlogs von v55 Server/Client: `GPSVehicleEquipment.lua:62: attempt to call a table value` tausendfach bei jedem Fahrzeuglade/Engine-Update, danach `Script error in openIntervalTimer: No more interval timers`. V55 darf nicht weiter genutzt werden.
+- Native `ConfigurationUtil.getConfigurationsFromXML` via `Utils.overwrittenFunction`: `manager` und `superFunc` standen in falscher Reihenfolge; korrektes Weiterleiten des Originalaufrufs und Ergebnisses hergestellt.
+- Fehler bei TerraLine-OPTIONALER Shop-Ergänzung werden abgefangen und führen zu sicherem Einmal-Fallback; kein per-frame-Fehlerspam. Native Funktion bleibt autoritativ.
+- Tests 27 Lua-Syntax, 200 wiederholte fehlerhafte Calls ohne Spam, native Manager/Super-Aufruf, 0/10K, Trailer-Ausschluss. ZIP validiert, Lenk-/Kurs-/Netz-/Tachodateien byte-identisch zu v55.
+- Echter Ingame-Shop/Werkstatt-Test steht aus; bei weiterem unerwarteten Problem auf v54 zurückrollen.
+
 ## 0.9.9.55 – 12.10.2026 (EXPERIMENTELL / NATIVE SHOP-KONFIGURATION + TACHO)
 - Fahrzeug-Konfigurations-API nach GIANTS Precision-Farming-Vorbild: neue `terraLineGPS`-Option in Standard-Fahrzeugshop und nativer Werkstatt, 0 € AUS (Standard) / 10.000 € EIN. Der Preis wird vom Spiel über `VehicleConfigurationItem.price` verarbeitet, kein manueller Geldabzug.
 - Fahrzeugmerkmale gehen mit GIANTS `vehicle.configurations` in Savegame und Netzwerk, nicht in das TerraLine-Hofkurs-XML. Nichtmotorisierte Geräte ausgeschlossen.
