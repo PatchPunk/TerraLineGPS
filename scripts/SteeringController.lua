@@ -1,12 +1,12 @@
 -- GPS v0.9.4: experimental straight-pass steering, no throttle / brakes / turns.
 -- Steering axis verified with v0.9.2: negative = left, positive = right.
-GPSSteeringController={enabled=false,vehicle=nil,reason="Aus",lastValue=0,lastCross=0,lockedTrack=nil,hookInstalled=false,logClock=0,guardStart=nil,guardClock=0,waitingForMotion=false}
+GPSSteeringController={enabled=false,vehicle=nil,reason="Aus",lastValue=0,lastCross=0,lockedTrack=nil,hookInstalled=false,logClock=0,guardStart=nil,guardClock=0,waitingForMotion=false,networkSteeringValue=nil,injectingInput=false}
 local C=GPSSteeringController
 local function clamp(v,lo,hi) return math.max(lo,math.min(hi,v)) end
 local function log(msg) if GPSLogger then GPSLogger.info("GPS-LENK "..msg) end end
 function C.stop(reason)
     if C.enabled then log("AUS: "..tostring(reason)) end
-    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false
+    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false
 end
 function C.toggle(vehicle)
     if C.enabled then C.stop("Manuell ausgeschaltet"); return "GPS Lenkung AUS" end
@@ -18,8 +18,8 @@ function C.toggle(vehicle)
     end
     if not C.install(vehicle) then return "GPS: Lenk-Hook nicht verfuegbar" end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>30 then return "GPS: Aktivierung nur bis 30 km/h" end
-    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkPathLogged=false
+    if speed>(g_client~=nil and g_server==nil and 18 or 30) then return "GPS: Aktivierung nur bis 18 km/h im Multiplayer" end
+    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.networkPathLogged=false
     C.reason="Aktiv | Spur "..tostring(C.lockedTrack)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
     return "GPS Lenkung EIN | Spur "..tostring(C.lockedTrack)
@@ -56,17 +56,23 @@ function C.compute(vehicle,dt,mpMode)
     -- Empirical v0.9.3 logs: signed offset and heading ran AWAY from zero.
     -- Reverse BOTH feedback terms; check actual offset decrease in the safety watchdog.
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 5
-    -- SP controller is unchanged. MP client's axisSide update has different
-    -- effective steering dynamics; v49 oscillated at 12-25km/h and hit safety
-    -- watchdog stops. Use much gentler proportional gains and a stricter
-    -- max steer/slew limit. The watchdog is deliberately preserved.
-    local gainScale,desired,maxDelta
+    -- SP controller is unchanged. MP uses a forward-look target ON THE CURRENT
+    -- TRACK rather than signed feedback into the server physics axis. The
+    -- steering input sign was verified: positive=RIGHT, negative=LEFT.
+    -- For a vehicle facing +Z and a target on its right (+X), atan2 returns
+    -- a negative bearing. The *negative* of that bearing is the right-turn
+    -- input, independent of A/B direction or travelling north/south.
+    local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 5
+    local desired,maxDelta
     if mpMode then
-        gainScale=clamp(8/math.max(speed,4),0.40,1.0)
-        desired=clamp((heading*0.62-offset*dir*0.085)*gainScale,-0.075,0.075)
-        maxDelta=0.00011*clamp(dt or 16,1,100)
+        local lookAhead=clamp(4.5+speed/3.6*1.6,5,10)
+        local errX=targetX*lookAhead-offset*nx
+        local errZ=targetZ*lookAhead-offset*nz
+        local bearing=math.atan2(vx*errZ-vz*errX,vx*errX+vz*errZ)
+        desired=clamp(-bearing*0.93,-0.19,0.19)
+        maxDelta=0.00022*clamp(dt or 16,1,100)
     else
-        gainScale=clamp(8/math.max(speed,3),0.55,1.25)
+        local gainScale=clamp(8/math.max(speed,3),0.55,1.25)
         desired=clamp((heading*1.10-offset*dir*0.23)*gainScale,-0.22,0.22)
         maxDelta=0.00035*clamp(dt or 16,1,100)
     end
@@ -76,10 +82,10 @@ function C.compute(vehicle,dt,mpMode)
     -- Observe absolute lateral error over a moving 2.2-second window.
     if C.guardStart==nil then C.guardStart=math.abs(offset); C.guardClock=0 end
     C.guardClock=C.guardClock+(dt or 0)
-    if C.guardClock>=2200 then
+    if C.guardClock>=(mpMode and 3000 or 2200) then
         local growth=math.abs(offset)-C.guardStart
         log(string.format("Trend: absStart=%.3f absNow=%.3f delta=%+.3f heading=%.3f cmd=%.3f",C.guardStart,math.abs(offset),growth,heading,command))
-        if growth>0.24 and math.abs(command)>0.04 then
+        if growth>(mpMode and 0.38 or 0.24) and math.abs(command)>0.04 then
             C.stop("Sicherheitsstopp: Spurabweichung waechst"); return nil
         end
         C.guardStart=math.abs(offset); C.guardClock=0
@@ -141,8 +147,15 @@ function C.install(vehicle)
     if g_client~=nil and g_server==nil and type(vehicle.setSteeringInput)=="function" then
         local originalInput=vehicle.setSteeringInput
         vehicle.setSteeringInput=function(self,value,isAnalog,deviceCategory,...)
-            if C.enabled and self==C.vehicle and type(value)=="number" and math.abs(value)>0.25 then
-                C.stop("MP: Manueller Lenkeingriff")
+            if C.enabled and self==C.vehicle and not C.injectingInput then
+                if type(value)=="number" and math.abs(value)>0.25 then
+                    C.stop("MP: Manueller Lenkeingriff")
+                elseif C.networkSteeringValue~=nil then
+                    -- Even continuous wheel/gamepad callbacks must not override
+                    -- the GPS's normal Drivable input before onUpdate consumes it.
+                    value=C.networkSteeringValue
+                    isAnalog=true
+                end
             end
             return originalInput(self,value,isAnalog,deviceCategory,...)
         end
@@ -151,11 +164,11 @@ function C.install(vehicle)
     return true
 end
 
--- Dedicated MP: Drivable:onUpdate runs on the driving CLIENT and transmits
--- spec_drivable.axisSide via the normal dirty update stream. On a remote
--- client the legacy updateVehiclePhysics hook may never run. Do not send
--- custom steering RPCs and do not change the server's vehicle state directly.
--- Only the locally entered vehicle receives commands.
+-- Dedicated MP: feed GPS into the game's NORMAL driver input path.
+-- Drivable:onUpdate integrates lastInputValues.axisSteer into axisSide,
+-- updates the vehicle's physical steering state and replicates its own dirty
+-- flags. Writing axisSide directly after onUpdate bypasses that integration
+-- and can make the visible wheel disagree with the actual command.
 function C.updateNetworkSteering(dt,vehicle)
     if g_client==nil or g_server~=nil or not C.enabled then return end
     if vehicle==nil or vehicle~=C.vehicle then C.stop("MP: Fahrzeug verlassen/gewechselt");return end
@@ -166,11 +179,9 @@ function C.updateNetworkSteering(dt,vehicle)
         C.stop("MP: Fahrer ausgestiegen");return
     end
     local spec=vehicle.spec_drivable
-    if type(vehicle.raiseDirtyFlags)~="function" or spec.dirtyFlag==nil then
-        C.stop("MP: Lenkeingabe-Synchronisierung nicht verfuegbar");return
+    if type(vehicle.setSteeringInput)~="function" or type(vehicle.raiseDirtyFlags)~="function" or spec.dirtyFlag==nil then
+        C.stop("MP: Drivable-Lenkeingang nicht verfuegbar");return
     end
-    -- The normal local steering input callback is monitored by install().
-    -- Manual movement above the threshold disengages GPS immediately.
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>18 then C.stop("MP-Test: GPS maximal 18 km/h (Stabilisierung)");return end
     if spec.doHandbrake and speed>=2 then C.stop("MP: Handbremse");return end
@@ -179,17 +190,22 @@ function C.updateNetworkSteering(dt,vehicle)
             C.waitingForMotion=true
             log("MP: GPS wartet bei Stillstand auf Weiterfahrt")
         end
-        C.lastValue=0;C.guardStart=nil;C.guardClock=0
-        -- Never command a parked vehicle to turn.
+        C.lastValue=0;C.guardStart=nil;C.guardClock=0;C.networkSteeringValue=0
         return
     end
     if C.waitingForMotion then C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv") end
     local value=C.compute(vehicle,dt,true)
     if value==nil then return end
-    spec.axisSide=value
-    vehicle:raiseDirtyFlags(spec.dirtyFlag)
+    C.networkSteeringValue=value
+    -- Mark synthetic input so the manual-driver input wrapper doesn't treat
+    -- TerraLine as a user intervention. The normal Drivable steering-wheel
+    -- interpolation and multiplayer transmission execute in the game loop.
+    C.injectingInput=true
+    local ok,err=pcall(vehicle.setSteeringInput,vehicle,value,true,InputDevice and InputDevice.CATEGORY and InputDevice.CATEGORY.GAMEPAD)
+    C.injectingInput=false
+    if not ok then C.stop("MP: Lenkeingabe-Fehler "..tostring(err));return end
     if not C.networkPathLogged then
         C.networkPathLogged=true
-        log("MP-CLIENT: sanfte Lenkregelung aktiv (max 18km/h, max 0.075, v0.9.9.50)")
+        log("MP-CLIENT: normaler Lenkeingang aktiv (Lenkrad + Fahrzeug), Vorhaltepunkt, max 18 km/h, v0.9.9.51")
     end
 end

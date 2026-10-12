@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.50 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.51 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -74,6 +74,8 @@ MP TESTBUILD 0.9.9.48 (Kursliste nach Hofwechsel)
 - Versionsanzeige aller drei Menue-Seiten nutzt zentral GPSConfig.version statt einer fest codierten alten Version.
 - Hofgetrenntes GPS AN/AUS aus 0.9.9.47 unveraendert. Kein Server-Neustart-Test in diesem Build nachgewiesen.
 
-Version 0.9.9.50: Korrigiert MP-Kursabfrage (REQUEST ohne Payload), stabilisiert Kurs-Speicherpfad bei tempsavegame und testet clientseitige Lenkeingabe via Drivable.axisSide. MP-Lenkung experimentell, noch nicht im LS25 bestaetigt.
+Version 0.9.9.51: Korrigiert MP-Kursabfrage (REQUEST ohne Payload), stabilisiert Kurs-Speicherpfad bei tempsavegame und testet clientseitige Lenkeingabe via Drivable.axisSide. MP-Lenkung experimentell, noch nicht im LS25 bestaetigt.
 
-Version 0.9.9.50: MP GPS lenkt sanfter (bis 18 km/h, max 0.075) und schreibt Hofkurse beim regulaeren GIANTS ItemSystem.save nach tempsavegame. Bitte auf Dedicated Server mit Savegame-Backup pruefen.
+Version 0.9.9.51: MP GPS lenkt sanfter (bis 18 km/h, max 0.075) und schreibt Hofkurse beim regulaeren GIANTS ItemSystem.save nach tempsavegame. Bitte auf Dedicated Server mit Savegame-Backup pruefen.
+
+Version 0.9.9.51: MP-Lenkung verwendet einen Vorhaltepunkt auf der A/B-Linie und die regulaere Fahrzeug-Lenkeingabe (setSteeringInput), damit Drivable die echte Rad-/Lenkradbewegung berechnet und im MP uebertraegt. Signkonvention fuer Richtung korrigiert; 18-km/h-Schutz und bestehende SP-Regelung bleiben. Server-Kursspeicherung aus v0.9.9.50 unveraendert. Noch nicht ingame getestet.

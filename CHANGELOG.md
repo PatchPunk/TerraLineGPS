@@ -1,3 +1,10 @@
+## 0.9.9.51 – 12.10.2026 (EXPERIMENTELL / MP-VORHALTEPUNKT + NORMALER LENKEINGANG)
+- MP-Lenkeinfluss aus direkter Drivable.axisSide-Manipulation auf reguläre `vehicle:setSteeringInput`-Aufrufe umgestellt. GIANTS integriert die Lenkbewegung und versendet die vorhandene Fahrzeug-Update-Stream-Synchronisierung.
+- Geometrische Vorhaltepunkt-Steuerung: Korrekturrichtung anhand der relativen Position und Fahrtrichtung normalisiert, ohne Änderung am funktionierenden SP-Regler.
+- Manuelle Lenkbewegung über Schwellwert schaltet Assistenz ab, GPU/MP-Testgeschwindigkeit weiterhin auf 18 km/h begrenzt, Watchdog bleibt aktiv.
+- Kursspeicherung/Server-Synchronisierung bytegenau unverändert gegenüber v0.9.9.50.
+- 25 Lua-Skripte syntaktisch kompiliert. Geometrietests für linke und rechte Seiten sowie Gegenrichtung und manuellen Abbruch bestanden. **Echter Dedicated-Lenktest offen.**
+
 ## 0.9.9.50 – 12.10.2026 (EXPERIMENTELL / SANFTER MP-REGLER + TEMP-SAVE)
 - MP-spezifische Steuerkorrektur deutlich abgeschwächt, Lenkwert auf +/-0.075 begrenzt und MP-Geschwindigkeitssperre bei >18 km/h. Bestehender SP-Regler und Sicherheits-Watchdog unverändert.
 - FS25 übernimmt Multiplayer-Saves über einen temporären Snapshot. Kursdaten werden mit `ItemSystem.save` in dessen Verzeichnis geschrieben; der ursprüngliche Savegame-Pfad bleibt zur Ladenutzung fixiert. Verhindert das bisherige Verschwinden von XML-Daten beim Save-Promote.
