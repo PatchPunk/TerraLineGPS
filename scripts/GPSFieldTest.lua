@@ -1,7 +1,7 @@
 -- TerraLine GPS | Interne Projektmarke: Hallo hier bin ich, der CODE! | TL-GPS/2026-10-12
 -- TerraLine GPS v0.9.9.23: user-defined A/B only; independent of farmland.
 local GPS_MOD_DIRECTORY = g_currentModDirectory
-GPSFieldTest = {isLoaded=false,masterEnabled=true,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
+GPSFieldTest = {isLoaded=false,masterEnabled=false,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
  keyRegistered=false,keyRetry=0,keyABRegistered=false,keyABRetry=0,keyPressedAB=false,
  keyPressedAssist=false,lastActionAt=-9999,keyboardDiagnosticDone=false}
 
@@ -93,8 +93,9 @@ end
 
 function GPSFieldTest:loadMap()
     self.isLoaded=true
-    -- Master switch defaults to ON for each game session. Never clear A/B or courses on toggle.
-    self.masterEnabled=true
+    -- TerraLine stays OFF until the player explicitly enables it (Alt+T/menu).
+    -- The saved course database is available to the menu even while OFF.
+    self.masterEnabled=false
     self.defaultPowerHotkeyHeld=false
     self.lastPowerToggleAt=-9999
     if GPSCourseManager then GPSCourseManager.reset() end
@@ -108,6 +109,9 @@ function GPSFieldTest:loadMap()
     self.clock=0; self.totalMs=0; self.status="A/B bereit";self.vehicleStatus="-"
     self.currentVehicle=nil
     self.registeredOnce_AB=nil;self.registeredOnce_ASSIST=nil;self.inputRegistrationWarning=nil
+    -- Never carry a previous savegame's unsaved A/B line into a new map.
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then GPSImplementDetector.override=nil end
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Aus")
     -- Optional modules may fail independently; do not block game update/input.
     self.autoMirrorFaulted=false
@@ -141,8 +145,10 @@ function GPSFieldTest:deleteMap()
     if self.deactivationBeepSample~=nil and type(delete)=="function" then pcall(delete,self.deactivationBeepSample) end
     self.deactivationBeepSample=nil;self.lastAssistAudioState=nil;self.assistLinesActivatedAtMs=nil
     if GPSCourseManager then GPSCourseManager.reset() end
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then GPSImplementDetector.override=nil end
     if GPSDisplaySettings then GPSDisplaySettings.reset() end
-    self.isLoaded=false;self.masterEnabled=true;self.currentVehicle=nil;self.shiftHeld=nil
+    self.isLoaded=false;self.masterEnabled=false;self.currentVehicle=nil;self.shiftHeld=nil
     self.defaultPowerHotkeyHeld=false
     self.defaultShiftRightHeld=false;self.defaultShiftLeftHeld=false
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Karte verlassen")
@@ -373,6 +379,8 @@ function GPSFieldTest:update(dt)
     self:pollDefaultPowerHotkey()
     if GPSCourseManager then
         GPSCourseManager.ensureLoaded()
+        -- Required on host and clients, including while TerraLine power is OFF.
+        if GPSCourseManager.watchLocalFarm then GPSCourseManager.watchLocalFarm() end
         if GPSCourseManager.pollNetwork then GPSCourseManager.pollNetwork(dt) end
     end
     if GPSMenu and not GPSMenu.registered and (self.totalMs or 0)>=(self.nextMenuRegisterAttempt or 0) then

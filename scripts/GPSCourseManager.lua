@@ -1,6 +1,6 @@
 -- TerraLine GPS: named independent A/B courses saved per savegame. No field detection.
 -- Self-contained persistence; never changes SteeringController.lua.
-GPSCourseManager={courses={},fieldNames={},loadedPath=nil,nextId=1,activeCourseName=nil,clientFarmId=nil,pollTime=0}
+GPSCourseManager={courses={},fieldNames={},loadedPath=nil,nextId=1,activeCourseName=nil,clientFarmId=nil,pollTime=0,observedFarmId=nil,pendingSave=nil,lastServerMessage=nil}
 local M=GPSCourseManager
 local function log(s) if GPSLogger and GPSLogger.info then GPSLogger.info("TerraLine Kurse: "..tostring(s)) end end
 local function directory()
@@ -54,6 +54,7 @@ end
 function M.reset()
     M.courses={};M.fieldNames={};M.loadedPath=nil;M.nextId=1
     M.activeCourseName=nil;M.clientFarmId=nil;M.pollTime=0
+    M.observedFarmId=nil;M.pendingSave=nil;M.lastServerMessage=nil
 end
 function M.ensureLoaded()
     if remoteClient() then return end  -- Only the authoritative server reads XML.
@@ -119,12 +120,49 @@ function M.persist()
     if not ok then log("Speicherfehler: "..tostring(err));return false,"Kursdatei konnte nicht geschrieben werden" end
     return true,"Im Hof-Spielstand gespeichert"
 end
+-- Farm changes are LOCAL player changes, even when this player is also the host.
+-- The shared server course database is never cleared by a farm switch.
+-- A/B and steering belong to the local working context, not the shared farm list.
+function M.watchLocalFarm()
+    local farmId=M.getFarmId()
+    local marker=farmId or false
+    if M.observedFarmId==nil then
+        M.observedFarmId=marker
+        return
+    end
+    if M.observedFarmId==marker then return end
+    local previous=M.observedFarmId
+    M.observedFarmId=marker
+    M.activeCourseName=nil
+    M.pendingSave=nil
+    M.lastServerMessage=nil
+    M.pollTime=10000
+    if remoteClient() then
+        M.courses={}
+        M.clientFarmId=farmId
+    end
+    if GPSSteeringController then GPSSteeringController.stop("Hofwechsel: GPS aus") end
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSTrackGenerator then GPSTrackGenerator.reset() end
+    if GPSTrackPosition then GPSTrackPosition.reset() end
+    if GPSAutoMirror and GPSAutoMirror.reset then GPSAutoMirror.reset() end
+    if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.reset then GPSDeviceOffsetAuto.reset() end
+    if GPSImplementDetector then GPSImplementDetector.override=nil end
+    if GPSMenu and GPSMenu.screen then
+        GPSMenu.screen.page3Selected=1
+        GPSMenu.screen.page3Scroll=0
+        GPSMenu.screen.page3PendingDelete=nil
+        GPSMenu.screen.page3Message="Hofwechsel: GPS-Kurs und A/B-Referenz zurueckgesetzt"
+    end
+    log("Hofwechsel "..tostring(previous).." -> "..tostring(marker)..": lokale GPS-Spur entfernt")
+end
+
 function M.pollNetwork(dt)
     if not remoteClient() then return end
     local farmId=M.getFarmId()
     if farmId~=M.clientFarmId then
         M.courses={};M.activeCourseName=nil;M.clientFarmId=farmId
-        M.pollTime=9000 -- Immediate request on farm change (if assigned).
+        M.pollTime=10000 -- Immediate request on farm change (if assigned).
     end
     if not validFarm(farmId) then return end
     M.pollTime=(M.pollTime or 0)+math.max(0,dt or 0)
@@ -151,6 +189,25 @@ function M.receiveSnapshot(payload)
     M.clientFarmId=payload.farmId
     log(string.format("Hof %d: %d Kurse vom Server empfangen",payload.farmId,#list))
 end
+-- The client displays a saved name ONLY after the authoritative server has
+-- confirmed writing valid A/B coordinates. A sent request is not a save.
+function M.receiveResult(payload)
+    if not remoteClient() or type(payload)~="table" then return end
+    -- Farm-ID 0 is an explicit rejection when the server could not establish
+    -- the sender's farm; accept it only while waiting for our own save reply.
+    if payload.farmId~=M.getFarmId() and not (payload.farmId==0 and M.pendingSave) then return end
+    local message=tostring(payload.message or "Serverantwort fehlt"):sub(1,180)
+    M.lastServerMessage=message
+    if payload.operation==GPSFarmCourseEvent.SAVE then
+        if payload.ok and M.pendingSave and M.pendingSave.farmId==payload.farmId then
+            M.activeCourseName=M.pendingSave.name
+        end
+        M.pendingSave=nil
+    end
+    if GPSMenu and GPSMenu.screen then GPSMenu.screen.page3Message=message end
+    log((payload.ok and "MP bestaetigt: " or "MP abgelehnt: ")..message)
+end
+
 local function addCourse(farmId, proposed)
     if not validFarm(farmId) then return false,"Keinem Hof zugeordnet" end
     if type(proposed)~="table" then return false,"Ungültige Kursdaten" end
@@ -191,22 +248,29 @@ function M.handleClientRequest(connection,operation,payload)
     local player=mission and type(mission.getPlayerByConnection)=="function" and mission:getPlayerByConnection(connection)
     local farmId=player and player.farmId
     if not validFarm(farmId) then
-        log("MP Anfrage ohne gueltige Hofzugehoerigkeit abgelehnt")
+        log("MP Anfrage ohne gueltige Hofzugehoerigkeit abgelehnt (Player="..tostring(player)..")")
+        if operation==GPSFarmCourseEvent.SAVE or operation==GPSFarmCourseEvent.DELETE then
+            GPSFarmCourseEvent.sendResult(connection,operation,0,false,"Hofzugehoerigkeit serverseitig nicht erkannt")
+        end
         return
     end
     M.ensureLoaded()
     if operation==GPSFarmCourseEvent.SAVE then
         local ok,msg=addCourse(farmId,payload)
         log("Hof "..farmId.." Speichern: "..tostring(msg))
+        GPSFarmCourseEvent.sendResult(connection,operation,farmId,ok,msg)
     elseif operation==GPSFarmCourseEvent.DELETE then
         local ok,msg=removeCourse(farmId,payload.id)
         log("Hof "..farmId.." Loeschen: "..tostring(msg))
+        GPSFarmCourseEvent.sendResult(connection,operation,farmId,ok,msg)
     elseif operation~=GPSFarmCourseEvent.REQUEST then
         return
     end
     GPSFarmCourseEvent.sendSnapshot(connection,farmId,matchingCourses(farmId))
 end
+
 function M.getActiveName()
+    if M.observedFarmId~=nil and M.observedFarmId~=(M.getFarmId() or false) then return nil end
     return M.activeCourseName
 end
 function M.listAll()
@@ -285,8 +349,8 @@ function M.saveCurrent(name)
         if not (GPSFarmCourseEvent and GPSFarmCourseEvent.sendToServer(GPSFarmCourseEvent.SAVE,proposed)) then
             return false,"Serververbindung nicht bereit"
         end
-        M.activeCourseName=name
-        return true,"Hofkurs an Server gesendet – Bestaetigung abwarten"
+        M.pendingSave={name=name,farmId=farmId}
+        return true,"Kurs an Server gesendet – noch NICHT gespeichert"
     end
     local ok,msg=addCourse(farmId,proposed)
     if ok then M.activeCourseName=name end
@@ -297,7 +361,15 @@ function M.loadCourse(course)
     local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
     local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>2 then return false,"Bitte zum Laden des Kurses anhalten" end
-    if type(course)~="table" or not validNum(course.ax) or not validNum(course.bx) then return false,"Kurs ungueltig" end
+    if type(course)~="table" or not validNum(course.ax) or not validNum(course.az)
+        or not validNum(course.bx) or not validNum(course.bz) then return false,"Kurs ungueltig" end
+    local farmId=M.getFarmId()
+    if not validFarm(farmId) or course.farmId~=farmId then return false,"Kurs gehoert einem anderen Hof" end
+    local found=false
+    for _,existing in ipairs(M.listAll()) do
+        if existing.id==course.id then found=true;break end
+    end
+    if not found then return false,"Kurs nicht im Hofspeicher vorhanden" end
     refresh()
     if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled and type(GPSDeviceOffsetAuto.setEnabled)=="function" then
         GPSDeviceOffsetAuto.setEnabled(false)

@@ -1,3 +1,11 @@
+## 0.9.9.46 – 12.10.2026 (EXPERIMENTELL / MP-BUGFIX)
+- TerraLine GPS ist beim Laden eines Spielstands zunächst AUS.
+- Aktive A/B-Linie, Kursname und GPS-Lenkung werden bei Hofwechsel (Host und Client) zurückgesetzt.
+- Authentische Serverergebnisse für Hofkurs speichern/löschen statt voreiliger Erfolgsanzeige.
+- Laden eines Hofkurses nur aus dem tatsächlich sichtbaren Bestand derselben Farm.
+- MP-Event-Stream- und Lua-Testläufe bestanden; kein realer LS25-MP-Test.
+- Geplante Fahrzeugshop-Ausstattung (+10.000 Euro) noch NICHT eingebaut.
+
 ## 0.9.9.45 – 12.10.2026 (EXPERIMENTELL)
 - Erste MP-Datenstruktur: serververwaltete Hofkurse mit Farm-ID und Legacy-Farm-1-Migration.
 - GIANTS-Netzwerk-Event fuer Hofkurs-Listen, Speichern und Loeschen; serverseitige Hofzugehoerigkeitspruefung.

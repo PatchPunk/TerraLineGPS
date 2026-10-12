@@ -8,6 +8,7 @@ E.REQUEST = 1
 E.SAVE = 2
 E.DELETE = 3
 E.SNAPSHOT = 4
+E.RESULT = 5
 
 function E.emptyNew()
     return Event.new(E_mt)
@@ -33,6 +34,11 @@ function E:writeStream(streamId, connection)
         streamWriteFloat32(streamId, p.offset or 0)
     elseif self.operation == E.DELETE then
         streamWriteUInt16(streamId, p.id or 0)
+    elseif self.operation == E.RESULT then
+        streamWriteUInt8(streamId, p.farmId or 0)
+        streamWriteUInt8(streamId, p.requestOperation or 0)
+        streamWriteBool(streamId, p.ok==true)
+        streamWriteString(streamId, tostring(p.message or ""):sub(1,180))
     elseif self.operation == E.SNAPSHOT then
         streamWriteUInt8(streamId, p.farmId or 0)
         local courses = p.courses or {}
@@ -67,6 +73,11 @@ function E:readStream(streamId, connection)
         p.offset = streamReadFloat32(streamId)
     elseif operation == E.DELETE then
         p.id = streamReadUInt16(streamId)
+    elseif operation == E.RESULT then
+        p.farmId = streamReadUInt8(streamId)
+        p.operation = streamReadUInt8(streamId)
+        p.ok = streamReadBool(streamId)
+        p.message = streamReadString(streamId)
     elseif operation == E.SNAPSHOT then
         p.farmId = streamReadUInt8(streamId)
         local count = streamReadUInt16(streamId)
@@ -99,8 +110,9 @@ function E:run(connection)
     if connection == nil then return end
     if connection:getIsServer() then
         -- Clients ONLY accept snapshots from their authoritative server.
-        if self.operation == E.SNAPSHOT and GPSCourseManager then
-            GPSCourseManager.receiveSnapshot(self.payload)
+        if GPSCourseManager then
+            if self.operation == E.SNAPSHOT then GPSCourseManager.receiveSnapshot(self.payload)
+            elseif self.operation == E.RESULT then GPSCourseManager.receiveResult(self.payload) end
         end
     else
         -- The server derives the real farm ID from this connection; never
@@ -123,4 +135,10 @@ end
 function E.sendSnapshot(connection, farmId, courses)
     if g_server==nil or not connection or type(connection.sendEvent)~="function" then return end
     connection:sendEvent(E.new(E.SNAPSHOT, {farmId=farmId,courses=courses}))
+end
+
+function E.sendResult(connection, operation, farmId, ok, message)
+    if g_server==nil or not connection or type(connection.sendEvent)~="function" then return end
+    connection:sendEvent(E.new(E.RESULT, {farmId=farmId,requestOperation=operation,
+        ok=ok==true,message=message or ""}))
 end

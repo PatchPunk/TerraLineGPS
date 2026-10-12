@@ -52,7 +52,7 @@ Die Entwickler-PIN ist im Lua-Quellcode einsehbar und **kein echter Zugriffsschu
 ```bash
 git init -b main
 git add .
-git commit -m "TerraLine GPS v0.9.9.45 – MP-Entwicklungsstand"
+git commit -m "TerraLine GPS v0.9.9.46 – MP-Entwicklungsstand"
 git remote add origin https://github.com/DEIN-BENUTZERNAME/TerraLineGPS.git
 git push -u origin main
 ```
@@ -78,7 +78,7 @@ python tools/build_mod.py
 Diese Checks prüfen Dateistruktur, XML und Build – **nicht** die reale
 Funktion im LS25 oder den offiziellen GIANTS TestRunner.
 
-## Multiplayer-Entwicklungsstand v0.9.9.45 (NICHT freigegeben)
+## Multiplayer-Entwicklungsstand v0.9.9.46 (NICHT freigegeben)
 
 Dies ist ein **technischer MP-Testbuild**, keine fertige Multiplayerversion.
 Die `modDesc.xml` erlaubt das Laden auf MP-Servern nur zum Testen. Die
@@ -90,11 +90,20 @@ Fahrer geprüft. Zum Testen zunächst ohne aktivierte GPS-Lenkung beginnen.
 - Die eigene Hofzugehörigkeit wird **serverseitig** anhand der Verbindung geprüft.
 - Beim Beitritt und etwa alle 10 Sekunden holt ein Client nur Kurse des eigenen Hofs.
 - Erstellen/Löschen wird als Anfrage an den Server geschickt. Das Menü zeigt die
-  Anfrage zunächst als gesendet an; auf die Serverbestätigung/Synchronisierung warten.
+  Anfrage zunächst als gesendet an. **Erst eine positive Serverbestätigung** setzt den Kursnamen als gespeichert; Ablehnungen werden im Kursmenü angezeigt.
 - Laufende A/B-Spur und Lenkung eines Traktors werden nicht durch empfangene
   Hofkurslisten überschrieben; Kurs laden bleibt eine Aktion des lokalen Fahrers.
-- Nach Hofwechsel löscht der Client seinen bisherigen Hofkurs-Cache.
+- Nach einem Hofwechsel werden **auch beim Host** die alte A/B-Linie, die aktive Kursanzeige und die lokale GPS-Lenkung zurückgesetzt. Der serverseitige Hofkursbestand bleibt unverändert.
 
 Noch offen: unmittelbarer Push an alle Hofmitglieder, genauere Rollenrechte,
 per-Fahrzeug-Lenkzustände und physische Lenkautorität auf Dedicated-Servern.
 Siehe `docs/MP_TESTPLAN.md`.
+
+## Änderungen v0.9.9.46 (MP-Bugfix-Stand)
+- Hauptschalter startet nach jedem Spielstart standardmäßig AUS. Einschalten erfolgt mit Alt+T oder im TerraLine-Menü.
+- Beim Hofwechsel (auch beim Host) verschwinden die alte A/B-Geometrie, die aktive Kursanzeige und die GPS-Lenkung; gespeicherte Hofkurse werden nicht gelöscht.
+- Bei Multiplayer-Speicher-/Löschvorgängen schickt der Server explizit eine Erfolg-/Fehlerantwort. Ein nur versendeter Kurs gilt im UI nicht als gespeichert.
+- Fremde Hofkurse können nicht geladen werden.
+- Die 10.000-€-TerraLine-Ausstattung im Fahrzeugshop wird als eigenständiger nächster Entwicklungsschritt geplant; **in 0.9.9.46 nicht enthalten**.
+
+**MP-Tests mit zwei Clients und Dedicated Server stehen noch aus.**

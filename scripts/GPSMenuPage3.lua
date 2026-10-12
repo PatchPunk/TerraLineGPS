@@ -35,7 +35,7 @@ local function panel(s,x,t,w,h,title)
  rect(s,x+.010,t+.015,.004,.032,P.green);txt(s,x+.026,t+.045,title,.023,P.white,true)
  rect(s,x+.011,t+.065,w-.022,.0012,P.dim)
 end
-function M.onOpen(s) s.page3Row=s.page3Row or 1;s.page3Scroll=s.page3Scroll or 0;s.page3Message="A/B-Kurse in diesem Spielstand speichern";s.page3Edit=nil;GPSCourseManager.ensureLoaded() end
+function M.onOpen(s) s.page3Row=s.page3Row or 1;s.page3Scroll=s.page3Scroll or 0;s.page3Message=GPSCourseManager.lastServerMessage or "A/B-Kurse des aktuellen Hofes speichern";s.page3Edit=nil;GPSCourseManager.ensureLoaded() end
 local function notify(s,ok,msg) s.page3Message=msg;GPSLogger.info("TerraLine S3: "..tostring(msg)) end
 -- Native ScreenElement raw key events, not a soft/on-screen keyboard.
 -- The editor remains visible as a compact modal for confirmation/cancel only.
@@ -156,7 +156,7 @@ function M.draw(s)
  rect(s,0,0,1,.128,P.header);rect(s,0,.128,1,.002,P.dim)
  rect(s,.024,.033,.038,.055,P.greenDim);if GPSMenuSymbols then GPSMenuSymbols.header(s,.044,.029) end
  txt(s,.079,.065,"TERRALINE GPS",.045,P.white,true)
- txt(s,.408,.065,"v0.9.9.45",.022,P.green)
+ txt(s,.408,.065,"v0.9.9.46",.022,P.green)
  txt(s,.080,.106,"KURSVERWALTUNG (ohne Feldzuordnung)",.020,P.muted)
  btn(s,.932,.032,.046,.065,"X","close")
  rect(s,.012,.145,.177,.691,P.sidebar)
