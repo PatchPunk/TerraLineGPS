@@ -209,3 +209,9 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - Differenz zur v0.9.9.59-ZIP: genau 6 Dateien (`PROJECT_NOTICE.txt`, `README.txt`, `modDesc.xml`, `scripts/Config.lua`, `scripts/GPSFieldTest.lua`, `scripts/SteeringDiagnostics.lua`). 33 weitere Bestandteile byte-identisch (inkl. Lenkung, Hofkurse, Events, Shop/Tacho).
 - Lokal geprüft: 27/27 Lua-Syntax, `modDesc.xml`/`gui/GPSMenu.xml`-XML und 39-Datei ZIP mit fehlerfreien CRCs. Echtes Lua-Mock: Diagnoselenkimpuls bei aktivem oder fehlendem `publicBeta`-Flag vor allen Nebenwirkungen abgewiesen. **Noch kein LS25-Ingame-Test v60.**
 - Das herunterladbare ZIP ist **ein Kandidat**, keine für Forbidden Mods autorisierte öffentliche Veröffentlichung; der PR bleibt Draft. Weitere Realtests und die authentischen Ingame-Screenshots abwarten.
+
+
+### v0.9.9.60 – englische Begleitdateien fuer Public Beta (12.10.2026)
+- Deutsche Dokumente `README.txt` und `PROJECT_NOTICE.txt` bleiben erhalten.
+- Neue vollständige englische Fassungen `README_EN.txt` und `PROJECT_NOTICE_EN.txt` ins Mod-Root aufgenommen; Installation, Tasten, Funktionen, Grenzen und Warnhinweise analog DE. Die vom Nutzer vorgelegte aktualisierte deutsche `PROJECT_NOTICE.txt` ist uebernommen (Formulierung zur Herkunft der Assets ohne KI-Zusatz, wie hochgeladen).
+- ZIP `FS25_TerraLineGPS_v0_9_9_60_beta_bilingual_candidate.zip` enthält 41 statt 39 Dateien. Kein Lua-/XML-/Asset-Austausch gegenüber v0.9.9.60 Erstkandidat; ZIP-CRC sowie byteidentischer Vergleich aller Original-Implementierungsdateien bestanden. Nicht im Spiel getestet, noch nicht veroeffentlicht.

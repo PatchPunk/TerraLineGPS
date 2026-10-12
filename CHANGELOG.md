@@ -1,3 +1,7 @@
+## 0.9.9.60 Bilingual Candidate – 12.10.2026
+- Added English translations `README_EN.txt` and `PROJECT_NOTICE_EN.txt`; original German `README.txt` retained. Updated German `PROJECT_NOTICE.txt` to the supplied version.
+- Release ZIP contains 41 files; no Lua, XML, audio or graphic code/content changes relative to previous v0.9.9.60 candidate. ZIP CRC/integrity verified. In-game testing still pending; do not publish or merge.
+
 ## 0.9.9.60 – 12.10.2026 (PUBLIC BETA CANDIDATE – NOT YET RELEASED)
 - Free public PC beta candidate for Mod für Farming Simulator 25 under author PatchPunk; readme/description/notices updated to real v59 confirmed capabilities and known two-player MP limitation.
 - Disabled active steering-test console command `gsGPSSteerTest`; `GPSSteeringDiagnostics.start` fails closed whenever beta mode is enabled or unset. No changes to the actual GPS assist steering module.

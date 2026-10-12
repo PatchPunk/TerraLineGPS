@@ -4,7 +4,7 @@ Mod fuer Farming Simulator 25. Kostenloser PC-Mod von PatchPunk.
 
 Projekthinweis:
 Die mitgelieferten Grafiken und Sounds wurden nach Auskunft des
-Projektinhabers selbst bzw. mit KI-Unterstuetzung fuer TerraLine GPS
+Projektinhabers selbst fuer TerraLine GPS
 angefertigt. Es wurden nach seiner Auskunft keine Grafik- oder
 Sound-Dateien aus anderen Mods uebernommen.
 
