@@ -1,12 +1,12 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private PC-/Einzelspieler-Entwicklung, Version **0.9.9.44** (12.10.2026).
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.45** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
 einstellbare Linienoptik und eine passwortgeschützte Entwicklerdiagnose.
 Die Hauptfunktion wurde in **0.9.9.43** im Spiel getestet und bestätigt;
-**0.9.9.44** ändert nur Dokumentation, Versionsangabe und Kommentare.
+**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.45** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
 
 ## Installation für LS25
 
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_44.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_45.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -52,7 +52,7 @@ Die Entwickler-PIN ist im Lua-Quellcode einsehbar und **kein echter Zugriffsschu
 ```bash
 git init -b main
 git add .
-git commit -m "TerraLine GPS v0.9.9.44 – privater Ausgangsstand"
+git commit -m "TerraLine GPS v0.9.9.45 – MP-Entwicklungsstand"
 git remote add origin https://github.com/DEIN-BENUTZERNAME/TerraLineGPS.git
 git push -u origin main
 ```
@@ -77,3 +77,24 @@ python tools/build_mod.py
 
 Diese Checks prüfen Dateistruktur, XML und Build – **nicht** die reale
 Funktion im LS25 oder den offiziellen GIANTS TestRunner.
+
+## Multiplayer-Entwicklungsstand v0.9.9.45 (NICHT freigegeben)
+
+Dies ist ein **technischer MP-Testbuild**, keine fertige Multiplayerversion.
+Die `modDesc.xml` erlaubt das Laden auf MP-Servern nur zum Testen. Die
+GPS-Lenkung ist dort noch nicht freigegeben oder auf mehrere gleichzeitige
+Fahrer geprüft. Zum Testen zunächst ohne aktivierte GPS-Lenkung beginnen.
+
+- Gespeicherte Kurse tragen eine `farmId`, ältere SP-Kurse werden Farm 1 zugeordnet.
+- Der Server speichert `terralineGPS.xml`; Clients schreiben **keine** lokalen Kursdateien.
+- Die eigene Hofzugehörigkeit wird **serverseitig** anhand der Verbindung geprüft.
+- Beim Beitritt und etwa alle 10 Sekunden holt ein Client nur Kurse des eigenen Hofs.
+- Erstellen/Löschen wird als Anfrage an den Server geschickt. Das Menü zeigt die
+  Anfrage zunächst als gesendet an; auf die Serverbestätigung/Synchronisierung warten.
+- Laufende A/B-Spur und Lenkung eines Traktors werden nicht durch empfangene
+  Hofkurslisten überschrieben; Kurs laden bleibt eine Aktion des lokalen Fahrers.
+- Nach Hofwechsel löscht der Client seinen bisherigen Hofkurs-Cache.
+
+Noch offen: unmittelbarer Push an alle Hofmitglieder, genauere Rollenrechte,
+per-Fahrzeug-Lenkzustände und physische Lenkautorität auf Dedicated-Servern.
+Siehe `docs/MP_TESTPLAN.md`.

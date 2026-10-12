@@ -1,3 +1,10 @@
+## 0.9.9.45 – 12.10.2026 (EXPERIMENTELL)
+- Erste MP-Datenstruktur: serververwaltete Hofkurse mit Farm-ID und Legacy-Farm-1-Migration.
+- GIANTS-Netzwerk-Event fuer Hofkurs-Listen, Speichern und Loeschen; serverseitige Hofzugehoerigkeitspruefung.
+- Client-Synchronisierung bei Hofwechsel/Beitritt und alle ca. 10 Sekunden; keine lokalen XML-Schreibzugriffe der Clients.
+- MP-Testfreigabe in modDesc nur zum gezielten Testen, NICHT Freigabe der Multiplayer-Lenkung.
+- Bewaehrte Lenkregelung und 3D-Linien unveraendert.
+
 # Änderungsverlauf
 
 ## 0.9.9.44 – 12.10.2026

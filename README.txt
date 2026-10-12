@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.44 — PC / Singleplayer
+TerraLine GPS v0.9.9.45 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -22,7 +22,7 @@ Entwicklerdiagnose:
 - OPTION 1 / OPTION 2 sind bewusst noch ohne Funktion.
 
 Hinweise zur Veroeffentlichung:
-- Nur PC; multiplayer supported=false. Lua-Skripte schliessen Konsolen-Crossplay aus.
+- Nur PC; Multiplayer supported=true NUR fuer Entwicklungs- und Synchronisationstests. MP-Lenkung ist noch nicht freigegeben.
 - Mod-Icon: icon_terraline.dds, 512 x 512, DXT1/BC1, 1 Mipmap-Stufe (keine generierten Mipmaps).
 - Rechte an allen Code-, Bild- und Tonbestandteilen vor einer Veroeffentlichung pruefen.
 - Offizieller GIANTS TestRunner und reale Ingame-Tests stehen noch aus.
@@ -42,3 +42,11 @@ NEU v0.9.9.43: TerraLine GPS Hauptschalter.
 
 GitHub-/Projektstand v0.9.9.44: nur Kommentare zur internen Projektmarkierung
 und Dokumentation ergaenzt. Keine geaenderte GPS-Funktion.
+
+MP TESTBUILD 0.9.9.45
+- Gemeinsame Hofkurse ueber Farm-ID; Server allein schreibt terralineGPS.xml.
+- Clientes holen den Kursbestand beim Beitritt und alle rund 10 Sekunden ab.
+- Auf Client-Seite werden Speicher-/Loeschanfragen an den Server gesendet.
+- Bestehende v0.9.9.44 Singleplayer-Referenz bleibt unveraendert.
+- Vor MP-Test Savegame sichern, alle Clients brauchen exakt dieselbe Mod-ZIP.
+- GPS-Lenkung im Multiplayer NOCH NICHT produktionsreif.

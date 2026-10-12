@@ -371,7 +371,10 @@ function GPSFieldTest:update(dt)
     self:installNativeHudBridge()
     self:pollDefaultMenuHotkey()
     self:pollDefaultPowerHotkey()
-    if GPSCourseManager then GPSCourseManager.ensureLoaded() end
+    if GPSCourseManager then
+        GPSCourseManager.ensureLoaded()
+        if GPSCourseManager.pollNetwork then GPSCourseManager.pollNetwork(dt) end
+    end
     if GPSMenu and not GPSMenu.registered and (self.totalMs or 0)>=(self.nextMenuRegisterAttempt or 0) then
         self.nextMenuRegisterAttempt=(self.totalMs or 0)+5000
         GPSMenu.register()

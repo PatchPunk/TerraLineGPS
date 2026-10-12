@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <modDesc descVersion="114">
   <author>TerraLine GPS Project</author>
-  <version>0.9.9.44</version>
+  <version>0.9.9.45</version>
   <title><en>TerraLine GPS</en><de>TerraLine GPS</de></title>
   <iconFilename>icon_terraline.dds</iconFilename>
-  <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Singleplayer only.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. Nur Einzelspieler.</de></description>
-  <multiplayer supported="false" />
+  <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Multiplayer development test: farm course synchronization; steering in MP not yet verified.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. MP-Entwicklungstest: Hofkurse synchronisieren; GPS-Lenkung im MP noch nicht freigegeben.</de></description>
+  <multiplayer supported="true" />
   <l10n>
     <text name="input_GPS_FIELD_POWER_TOGGLE"><de>TerraLine GPS Hauptschalter ein/aus</de><en>Toggle TerraLine GPS power</en></text>
     <text name="input_GPS_FIELD_ASSIST_TOGGLE"><de>GPS Spurhaltung ein/aus</de><en>Toggle GPS steering assist</en></text>
@@ -56,6 +56,7 @@
     <sourceFile filename="scripts/ImplementDetector.lua" />
     <sourceFile filename="scripts/ABLineManager.lua" />
     <sourceFile filename="scripts/GPSCourseManager.lua" />
+    <sourceFile filename="scripts/GPSFarmCourseEvent.lua" />
     <sourceFile filename="scripts/GPSAutoMirror.lua" />
     <sourceFile filename="scripts/GPSDeviceOffsetProbe.lua" />
     <sourceFile filename="scripts/GPSDeviceOffsetAuto.lua" />
