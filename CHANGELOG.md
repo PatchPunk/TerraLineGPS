@@ -1,3 +1,10 @@
+## 0.9.9.54 – 12.10.2026 (ENTWICKLERDIAGNOSE EIN/AUS)
+- Die zwei bereits sichtbaren aber bislang funktionslosen Optionsbuttons im Entwicklermenü werden zu `DIAG EIN` und `DIAG AUS` mit funktionierenden Klick-Aktionen und Zustandsmarkierung.
+- Nach Entsperren kann die detaillierte Diagnose per `GPSDeveloperMenu.setDiagnosticsEnabled` lokal aktiviert/deaktiviert werden. Standardwert beim Modstart `GPSConfig.showDiagnostics=false`; der Spielstand speichert diese Option nicht.
+- `GPSLogger.debug` und die optionale Ingame-Diagnose reagieren sofort, wichtige Info-/Fehlerlogs bleiben auch bei AUS sichtbar. Zugang nur über entsperrtes Entwicklermenü.
+- Bestehende Layoutpositionen bleiben unverändert. `SNAPSHOT INS LOG` funktioniert weiter.
+- Lua-Syntaxprüfung 25/25, simulierter UI-Klick- und Logger-Test sowie ZIP-Prüfung erfolgreich. Keine Änderungen an SteeringController, CourseManager, FarmCourseEvent oder TrackPosition. Echte GUI-Prüfung im LS25 steht noch aus.
+
 ## 0.9.9.53 – 12.10.2026 (MP 30 KM/H + LOG-BEREINIGUNG)
 - GPS-Lenkung SP/MP: einheitliche Geschwindigkeitsgrenze 30 km/h für Aktivieren und Sicherheitsabschaltung; bisherige 18-km/h-MP-Testbegrenzung entfernt.
 - Sichtbare Konsolenkennung `[TerraLine GPS]` statt `[GPSFieldTest]`. Interne Klassen, GIANTS-InputActions und Dateipfade absichtlich unverändert.

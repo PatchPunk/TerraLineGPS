@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.53** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.54** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_53.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_54.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -156,3 +156,7 @@ Der experimentelle MP-Regler verwendet einen Vorhaltepunkt auf der aktiven A/B-S
 - Laufende Telemetrie (GPS-LENK Spur/Trend/MP INPUT, Geräteversatz-Messwerte, regelmäßige Kurs-REQUEST/SNAPSHOT-Meldungen) läuft über `GPSLogger.debug`, standardmäßig deaktiviert (`GPSConfig.showDiagnostics=false`). Ereignisse, Fehler und Speichern/Laden bleiben sichtbar. Debug-Meldungen erscheinen mit `DIAG`.
 - Kursspeicherung und Netzwerkprotokoll unverändert bis auf die Logausgabe.
 - Syntaxprüfung mit Lua 5.4 aller 25 Skripte, Logger-Debug-Funktionstest, ZIP/XML-Kontrolle erfolgreich. GPS-Spurhaltung bei realen 30 km/h noch nicht bestätigt.
+
+
+### v0.9.9.54 – Diagnose im Entwicklermenü (experimentell)
+Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG EIN** und **DIAG AUS** und schalten die detaillierten Konsolen- und Overlay-Messwerte des lokalen Clients live über `GPSConfig.showDiagnostics`. Standard ist **AUS**. Die Funktion ist ausschließlich im entsperrten Entwicklerbereich verfügbar, schaltet sich nicht automatisch beim Betreten ein und wird nicht als Spieleinstellung dauerhaft gespeichert. Der Snapshot-Knopf bleibt erhalten. **GPS-Lenkung, 30-km/h-Grenze, Hofkurs-Persistenz und Netzwerkcode bleiben bytegenau unverändert.**
