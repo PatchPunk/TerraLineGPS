@@ -1,3 +1,12 @@
+## 0.9.9.48 – 12.10.2026 (EXPERIMENTELL / HOFKURS-CACHE + VERSIONSANZEIGE)
+- Beim Hofwechsel zerstört der Client seine vorherige Hofkurs-Liste nicht mehr; bestätigte Snapshots sind strikt per Farm-ID zwischengespeichert.
+- Sofortige Anzeige der passenden Hofliste und erneute Serverabfrage; verspätete Antworten für falsche Farm werden ignoriert.
+- Neuer Server-Snapshot bleibt maßgeblich und ersetzt den Zwischenspeicher, auch wenn er leer ist.
+- Versionswert zentral in GPSConfig.version, alle GUI-Seiten verwenden diesen Wert (Fix für sichtbare 0.9.9.46 in v47).
+- Diagnose: Client-REQUEST und Server-REQUEST zeigen Farm und Kursanzahl.
+- Tests: 25 Lua-Dateien kompiliert; isolierte Lua-Simulation für Farm 1 → Farm 2 → Farm 1, stale response, leere Serverliste und Reset bestanden.
+- Echte Multiplayer-Regression und G-Portal-Neustart weiterhin ausstehend.
+
 ## 0.9.9.47 – 12.10.2026 (EXPERIMENTELL / MP-PERSISTENZ + HOFTRENNUNG)
 - Korrigiert: Der GIANTS-Server-Save-Vorgang kann fremde XML-Dateien entfernen. Der Kursmanager schreibt terralineGPS.xml per FSBaseMission.saveSavegame-Hook nach jedem regulaeren Spielstand-Save erneut.
 - Mehr Diagnose: SERVER-LOAD mit tatsächlichem Pfad und Kursanzahl, SERVER-SAVE-HOOK installiert und Anzahl der gespeicherten Kurse bzw. Fehler.

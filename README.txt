@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.47 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.48 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -65,3 +65,11 @@ MP TESTBUILD 0.9.9.47 (nach Dedicated-Neustart-/Hof-Feedback)
 - Server-Logs melden SERVER-LOAD, SERVER-SAVE-HOOK installiert und SERVER-SAVE-HOOK mit Dateipfad und Anzahl Kurse; auf Host/Dedicated vergleichen.
 - ACHTUNG: Die schon verlorenen Kurse aus frueheren Versionen werden nicht automatisch zurueckgewonnen; vorhandene Server-Spielstanddateien sichern.
 - Kauf-/Werkstatt-Option +10.000 Euro ist separat geplant, hier NICHT eingebaut.
+
+MP TESTBUILD 0.9.9.48 (Kursliste nach Hofwechsel)
+- Client merkt sich pro Hof nur die zuletzt VOM SERVER bestaetigten Kurse.
+- Beim Hofwechsel werden A/B und Lenkung weiterhin zurueckgesetzt. Die passende Hofliste erscheint sofort aus dem Cache.
+- Parallel dazu wird eine neue Server-Kursliste angefordert. Serverantwort hat Vorrang, auch bei geloeschten Kursen.
+- Verspaetete Antworten anderer Hoefe werden ignoriert. Server-/Client-Logs zeigen REQUEST/SNAPSHOT-Abgleich.
+- Versionsanzeige aller drei Menue-Seiten nutzt zentral GPSConfig.version statt einer fest codierten alten Version.
+- Hofgetrenntes GPS AN/AUS aus 0.9.9.47 unveraendert. Kein Server-Neustart-Test in diesem Build nachgewiesen.

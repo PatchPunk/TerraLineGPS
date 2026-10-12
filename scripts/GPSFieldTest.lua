@@ -133,7 +133,7 @@ function GPSFieldTest:loadMap()
         GPSLogger.info("WARNUNG: Geraeteversatz-Messmodul fehlt")
     end
     self.keyRegistered=false;self.keyABRegistered=false;self.keyRetry=0;self.lastKeyDiagnostic=nil
-    GPSLogger.info("v0.9.8.5 gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
+    GPSLogger.info("v"..tostring(GPSConfig.version).." gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
     self.lastAssistAudioState=false
     self.assistLinesActivatedAtMs=nil
     self:loadActivationBeep()

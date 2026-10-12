@@ -1,12 +1,12 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.47** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.48** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
 einstellbare Linienoptik und eine passwortgeschützte Entwicklerdiagnose.
 Die Hauptfunktion wurde in **0.9.9.43** im Spiel getestet und bestätigt;
-**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.47** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
+**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.48** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
 
 ## Installation für LS25
 
@@ -115,3 +115,13 @@ Siehe `docs/MP_TESTPLAN.md`.
 - **Testfolge:** Testkurs in Hof 1 anlegen → in Hof 2 anlegen → Spiel speichern → Server stoppen → Server starten → je Hof die Kurse laden. Danach `SERVER-LOAD` und `SERVER-SAVE-HOOK` im Dedicated-Log kontrollieren.
 - Sicherheitsregel: Vor dem Test Savegame sichern. Kursdaten aus v0.9.9.46 nur erhalten, falls deren `terralineGPS.xml` im Original-Savegame noch existiert. Nicht automatisch rekonstruierbar.
 - Shop-Option (+10.000 EUR) weiterhin separat vorgesehen, NICHT eingebaut.
+
+## MP-Test v0.9.9.48 (Hofwechsel / Version)
+- Korrigiert: Beim Wechsel zwischen Hoefen wird die empfangene Kursliste nicht mehr unwiderruflich geleert.
+- Pro Farm wird **nur ein zuvor vom Server bestaetigter Snapshot** lokal zwischengespeichert.
+- Auf jedem Hofwechsel fordert der Client weiterhin einen frischen, verbindlichen Snapshot an; der Server ist autoritativ und darf den Cache ersetzen (auch leeren).
+- Verspaetete Serverantworten eines anderen Hofs werden verworfen.
+- GUI-Version wird auf allen Menue-Seiten zentral aus `GPSConfig.version` gelesen.
+- Keine Aenderung an GPS-Lenkung oder am getrennten Hof-Hauptschalter.
+- Bestehende KI-/Shop-Ausstattung weiterhin unveraendert; die 10.000-Euro-Shopoption ist separat geplant.
+- Mehr Diagnose zum Kurslisten-Request im Server- und Client-Log.

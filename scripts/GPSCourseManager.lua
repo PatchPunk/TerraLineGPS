@@ -1,6 +1,6 @@
 -- TerraLine GPS: named independent A/B courses saved per savegame. No field detection.
 -- Self-contained persistence; never changes SteeringController.lua.
-GPSCourseManager={courses={},fieldNames={},loadedPath=nil,nextId=1,activeCourseName=nil,clientFarmId=nil,pollTime=0,observedFarmId=nil,pendingSave=nil,lastServerMessage=nil}
+GPSCourseManager={courses={},fieldNames={},loadedPath=nil,nextId=1,activeCourseName=nil,clientFarmId=nil,pollTime=0,observedFarmId=nil,pendingSave=nil,lastServerMessage=nil,cachedCoursesByFarm={},awaitingFarmSnapshot=nil}
 local M=GPSCourseManager
 local function log(s) if GPSLogger and GPSLogger.info then GPSLogger.info("TerraLine Kurse: "..tostring(s)) end end
 local function directory()
@@ -55,6 +55,7 @@ function M.reset()
     M.courses={};M.fieldNames={};M.loadedPath=nil;M.nextId=1
     M.activeCourseName=nil;M.clientFarmId=nil;M.pollTime=0
     M.observedFarmId=nil;M.pendingSave=nil;M.lastServerMessage=nil
+    M.cachedCoursesByFarm={};M.awaitingFarmSnapshot=nil
 end
 function M.ensureLoaded()
     if remoteClient() then return end  -- Only the authoritative server reads XML.
@@ -170,8 +171,14 @@ function M.watchLocalFarm()
     M.lastServerMessage=nil
     M.pollTime=10000
     if remoteClient() then
-        M.courses={}
+        -- Cache only previously server-confirmed snapshots, separately per farm.
+        -- Never destroy the old farm's list merely because the player changes farm.
+        -- Server still owns the data; the next snapshot replaces this cached list.
+        M.courses=(M.cachedCoursesByFarm or {})[farmId] or {}
         M.clientFarmId=farmId
+        M.awaitingFarmSnapshot=farmId
+        log(string.format("Hof %s: %d bestaetigte Kurse aus lokalem Hof-Cache angezeigt; Serverabgleich ausstehend",
+            tostring(farmId),#M.courses))
     end
     if GPSSteeringController then GPSSteeringController.stop("Hofwechsel: GPS aus") end
     if GPSABLineManager then GPSABLineManager.clear() end
@@ -198,8 +205,11 @@ function M.pollNetwork(dt)
     if not remoteClient() then return end
     local farmId=M.getFarmId()
     if farmId~=M.clientFarmId then
-        M.courses={};M.activeCourseName=nil;M.clientFarmId=farmId
-        M.pollTime=10000 -- Immediate request on farm change (if assigned).
+        -- Also covers delayed farm assignment at client join.
+        M.courses=(M.cachedCoursesByFarm or {})[farmId] or {}
+        M.activeCourseName=nil;M.clientFarmId=farmId
+        M.awaitingFarmSnapshot=farmId
+        M.pollTime=10000 -- Request without waiting for a manual save.
     end
     if not validFarm(farmId) then return end
     M.pollTime=(M.pollTime or 0)+math.max(0,dt or 0)
@@ -207,13 +217,20 @@ function M.pollNetwork(dt)
     -- server data via an unfiltered global broadcast. Late joins are supported.
     if M.pollTime>=10000 then
         if GPSFarmCourseEvent and GPSFarmCourseEvent.sendToServer(GPSFarmCourseEvent.REQUEST) then
+            if M.awaitingFarmSnapshot==farmId then
+                log("Hof "..tostring(farmId)..": Server-Kursliste angefordert (Cache bleibt bis zur Antwort sichtbar)")
+            end
             M.pollTime=0
         end
     end
 end
 function M.receiveSnapshot(payload)
-    if not remoteClient() then return end
-    if type(payload)~="table" or payload.farmId~=M.getFarmId() then return end
+    if not remoteClient() or type(payload)~="table" then return end
+    if payload.farmId~=M.getFarmId() then
+        -- A delayed response after farm switch must never replace another farm's list.
+        log("Veraltete Server-Kursliste fuer Hof "..tostring(payload.farmId).." ignoriert")
+        return
+    end
     local list={}
     for _,c in ipairs(payload.courses or {}) do
         if validNum(c.ax) and validNum(c.az) and validNum(c.bx) and validNum(c.bz)
@@ -222,9 +239,14 @@ function M.receiveSnapshot(payload)
             list[#list+1]=c
         end
     end
+    -- Replacing the cache (including an empty snapshot) makes the server
+    -- authoritative, while preserving other farms' confirmed snapshots.
+    M.cachedCoursesByFarm=M.cachedCoursesByFarm or {}
+    M.cachedCoursesByFarm[payload.farmId]=list
     M.courses=list
     M.clientFarmId=payload.farmId
-    log(string.format("Hof %d: %d Kurse vom Server empfangen",payload.farmId,#list))
+    M.awaitingFarmSnapshot=nil
+    log(string.format("Hof %d: %d Kurse vom Server empfangen und zwischengespeichert",payload.farmId,#list))
 end
 -- The client displays a saved name ONLY after the authoritative server has
 -- confirmed writing valid A/B coordinates. A sent request is not a save.
@@ -302,6 +324,8 @@ function M.handleClientRequest(connection,operation,payload)
         GPSFarmCourseEvent.sendResult(connection,operation,farmId,ok,msg)
     elseif operation~=GPSFarmCourseEvent.REQUEST then
         return
+    else
+        log("MP REQUEST Hof "..tostring(farmId)..": "..tostring(#matchingCourses(farmId)).." Kurse an Client")
     end
     GPSFarmCourseEvent.sendSnapshot(connection,farmId,matchingCourses(farmId))
 end

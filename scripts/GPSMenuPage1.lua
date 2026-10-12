@@ -293,7 +293,7 @@ function GPSMenuPage1.draw(screen)
     rounded(screen,.024,.033,.038,.055,P.greenDim)
     if GPSMenuSymbols then GPSMenuSymbols.header(screen,.044,.029) end
     label(screen,.079,.065,"TERRALINE GPS",.045,P.white,true)
-    label(screen,.409,.065,"v0.9.9.46",.022,P.green,false)
+    label(screen,.409,.065,"v"..tostring(GPSConfig.version),.022,P.green,false)
     local src=GPSImplementDetector and GPSImplementDetector.override and "Manuell" or "Auto"
     local name=screen.nativeDeviceName or "Kein Arbeitsgeraet"
     if #name>26 then name=name:sub(1,23).."..." end
