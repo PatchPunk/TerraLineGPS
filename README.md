@@ -1,12 +1,12 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.49** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.50** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
 einstellbare Linienoptik und eine passwortgeschützte Entwicklerdiagnose.
 Die Hauptfunktion wurde in **0.9.9.43** im Spiel getestet und bestätigt;
-**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.49** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
+**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.50** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
 
 ## Installation für LS25
 
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_49.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_50.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -116,7 +116,7 @@ Siehe `docs/MP_TESTPLAN.md`.
 - Sicherheitsregel: Vor dem Test Savegame sichern. Kursdaten aus v0.9.9.46 nur erhalten, falls deren `terralineGPS.xml` im Original-Savegame noch existiert. Nicht automatisch rekonstruierbar.
 - Shop-Option (+10.000 EUR) weiterhin separat vorgesehen, NICHT eingebaut.
 
-## MP-Test v0.9.9.49 (Hofwechsel / Version)
+## MP-Test v0.9.9.50 (Hofwechsel / Version)
 - Korrigiert: Beim Wechsel zwischen Hoefen wird die empfangene Kursliste nicht mehr unwiderruflich geleert.
 - Pro Farm wird **nur ein zuvor vom Server bestaetigter Snapshot** lokal zwischengespeichert.
 - Auf jedem Hofwechsel fordert der Client weiterhin einen frischen, verbindlichen Snapshot an; der Server ist autoritativ und darf den Cache ersetzen (auch leeren).
@@ -127,8 +127,14 @@ Siehe `docs/MP_TESTPLAN.md`.
 - Mehr Diagnose zum Kurslisten-Request im Server- und Client-Log.
 
 
-### Version 0.9.9.49 – MP-Testhinweise
+### Version 0.9.9.50 – MP-Testhinweise
 - Der REQUEST-Event wird im ReadStream jetzt angenommen; beim Beitritt und Hofwechsel werden Hofkurse ohne vorherige Speicheraktion geladen.
 - Der Server hält den Original-Spielstandpfad über temporäre GIANTS-Save-Verzeichnisse hinweg stabil; gespeicherte Kurse werden nicht mehr durch einen leeren tempsavegame-Snapshot überschrieben.
 - Experimenteller Client-Eingabepfad für GPS-Lenkung nutzt Drivable.axisSide und GIANTS dirtyFlags statt ausschließlich eines serverseitigen Physik-Hooks. Manueller Lenkeingriff deaktiviert die Lenkung.
 - Die Multiplayer-Lenkung ist **noch nicht ingame bestätigt**, daher keine Freigabe für produktive Server oder v1.0.
+
+
+### 0.9.9.50 – MP-Testfix
+- Vorsichtige **MP-spezifische** Lenkverstärkung mit maximal 0,075 Lenkwert und Sicherheitsabschaltung über 18 km/h; Singleplayer-Regler nicht geändert.
+- Die serverseitigen Hofkurse werden bei `ItemSystem.save` direkt in den von GIANTS verwendeten Speicher-Snapshot (ggf. `tempsavegame`) geschrieben, damit sie beim Übernehmen des Spielstands nicht verschwinden.
+- Serverlog `SERVER-SAVE-TEMP` zeigt Pfad und Kursanzahl. Ein echter G-Portal-Speicher- und Neustarttest ist noch erforderlich.

@@ -24,7 +24,7 @@ function C.toggle(vehicle)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
     return "GPS Lenkung EIN | Spur "..tostring(C.lockedTrack)
 end
-function C.compute(vehicle,dt)
+function C.compute(vehicle,dt,mpMode)
     if not C.enabled or vehicle~=C.vehicle then return nil end
     if not GPSABLineManager.a or not GPSABLineManager.b then
         C.stop("A/B verloren");return nil
@@ -56,10 +56,21 @@ function C.compute(vehicle,dt)
     -- Empirical v0.9.3 logs: signed offset and heading ran AWAY from zero.
     -- Reverse BOTH feedback terms; check actual offset decrease in the safety watchdog.
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 5
-    local gainScale=clamp(8/math.max(speed,3),0.55,1.25)
-    local desired=clamp((heading*1.10-offset*dir*0.23)*gainScale,-0.22,0.22)
+    -- SP controller is unchanged. MP client's axisSide update has different
+    -- effective steering dynamics; v49 oscillated at 12-25km/h and hit safety
+    -- watchdog stops. Use much gentler proportional gains and a stricter
+    -- max steer/slew limit. The watchdog is deliberately preserved.
+    local gainScale,desired,maxDelta
+    if mpMode then
+        gainScale=clamp(8/math.max(speed,4),0.40,1.0)
+        desired=clamp((heading*0.62-offset*dir*0.085)*gainScale,-0.075,0.075)
+        maxDelta=0.00011*clamp(dt or 16,1,100)
+    else
+        gainScale=clamp(8/math.max(speed,3),0.55,1.25)
+        desired=clamp((heading*1.10-offset*dir*0.23)*gainScale,-0.22,0.22)
+        maxDelta=0.00035*clamp(dt or 16,1,100)
+    end
     -- Rate limit to avoid abrupt wheel movements. dt is milliseconds.
-    local maxDelta=0.00035*clamp(dt or 16,1,100)
     local command=C.lastValue+clamp(desired-C.lastValue,-maxDelta,maxDelta)
     -- Early trend watchdog: prevents extended wrong-way correction if sign still wrong.
     -- Observe absolute lateral error over a moving 2.2-second window.
@@ -161,7 +172,7 @@ function C.updateNetworkSteering(dt,vehicle)
     -- The normal local steering input callback is monitored by install().
     -- Manual movement above the threshold disengages GPS immediately.
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>30 then C.stop("MP: Geschwindigkeit ueber 30 km/h");return end
+    if speed>18 then C.stop("MP-Test: GPS maximal 18 km/h (Stabilisierung)");return end
     if spec.doHandbrake and speed>=2 then C.stop("MP: Handbremse");return end
     if speed<2 then
         if not C.waitingForMotion then
@@ -173,12 +184,12 @@ function C.updateNetworkSteering(dt,vehicle)
         return
     end
     if C.waitingForMotion then C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv") end
-    local value=C.compute(vehicle,dt)
+    local value=C.compute(vehicle,dt,true)
     if value==nil then return end
     spec.axisSide=value
     vehicle:raiseDirtyFlags(spec.dirtyFlag)
     if not C.networkPathLogged then
         C.networkPathLogged=true
-        log("MP-CLIENT: Lenksignal ueber Drivable.axisSide / dirtyFlag aktiv")
+        log("MP-CLIENT: sanfte Lenkregelung aktiv (max 18km/h, max 0.075, v0.9.9.50)")
     end
 end

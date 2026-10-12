@@ -99,10 +99,10 @@ function M.ensureLoaded()
     if type(delete)=="function" then pcall(delete,xml) end
     if not success then log("Lesefehler: "..tostring(err)) else log("SERVER-LOAD: "..tostring(#M.courses).." Hofkurse geladen von "..tostring(path)) end
 end
-function M.persist()
+function M.persist(overridePath)
     if remoteClient() then return false,"Nur der Server kann Hofkurse speichern" end
     M.ensureLoaded()
-    local path=filename()
+    local path=overridePath or filename()
     if not path or type(createXMLFile)~="function" then return false,"Spielstand-Verzeichnis nicht verfuegbar" end
     local ok,err=pcall(function()
         local xml=createXMLFile("TerraLineCourses",path,"terraline")
@@ -135,26 +135,43 @@ function M.persist()
     return true,"Im Hof-Spielstand gespeichert"
 end
 
--- FS25 saves may temporarily redirect missionInfo.savegameDirectory.
--- Keep our authoritative course table and the original slot path stable;
--- write to that original slot again after the GIANTS save completes.
+-- FS25 (1.5+): a save is assembled inside `tempsavegame` and then
+-- promoted to the real save slot. Writing only to savegame2 during ordinary
+-- gameplay is NOT enough; the promotion replaces the whole slot.
+-- The ItemSystem.save method runs while GIANTS is building that temporary
+-- snapshot (same lifecycle used by established FS25 server mods). Write our
+-- authoritative course table INTO THAT DIRECTORY while the save is staged.
+-- Do not switch the loadedPath to tempsavegame and never reload from it.
+function M.persistForEngineSave()
+    if g_server==nil then return end
+    -- A valid original slot must be resolved while the mission is loaded.
+    -- Never treat a temporary empty folder as a new savegame.
+    if M.loadedPath==nil then
+        log("SERVER-SAVE-TEMP FEHLER: Original-Spielstandpfad nicht initialisiert")
+        return
+    end
+    local targetDir=directory()
+    if type(targetDir)~="string" or targetDir=="" then
+        log("SERVER-SAVE-TEMP FEHLER: Save-Verzeichnis nicht verfuegbar")
+        return
+    end
+    local path=targetDir.."/terralineGPS.xml"
+    local ok,msg=M.persist(path)
+    if ok then
+        log(string.format("SERVER-SAVE-TEMP: %d Hofkurse im GIANTS-Save-Snapshot %s",#M.courses,path))
+    else
+        log("SERVER-SAVE-TEMP FEHLER: "..tostring(msg).." | "..tostring(path))
+    end
+end
 function M.installSaveHook()
     if M.saveHookInstalled then return true end
-    if type(FSBaseMission)~="table" or type(FSBaseMission.saveSavegame)~="function"
-       or type(Utils)~="table" or type(Utils.appendedFunction)~="function" then
-        return false
-    end
-    FSBaseMission.saveSavegame=Utils.appendedFunction(FSBaseMission.saveSavegame,function(mission,...)
-        if g_server==nil or mission~=g_currentMission then return end
-        local ok,msg=M.persist()
-        if ok then
-            log("SERVER-SAVE-HOOK: "..tostring(#M.courses).." Hofkurse in persistentem Spielstand "..tostring(filename()).." geschrieben")
-        else
-            log("SERVER-SAVE-HOOK FEHLER: "..tostring(msg))
-        end
+    if type(Utils)~="table" or type(Utils.prependedFunction)~="function" then return false end
+    if type(ItemSystem)~="table" or type(ItemSystem.save)~="function" then return false end
+    ItemSystem.save=Utils.prependedFunction(ItemSystem.save,function(...)
+        if g_server~=nil then M.persistForEngineSave() end
     end)
     M.saveHookInstalled=true
-    log("SERVER-SAVE-HOOK installiert (FSBaseMission.saveSavegame)")
+    log("SERVER-SAVE-HOOK installiert (ItemSystem.save: temp-Snapshot, v0.9.9.50)")
     return true
 end
 -- Farm changes are LOCAL player changes, even when this player is also the host.

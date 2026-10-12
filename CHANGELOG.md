@@ -1,3 +1,9 @@
+## 0.9.9.50 – 12.10.2026 (EXPERIMENTELL / SANFTER MP-REGLER + TEMP-SAVE)
+- MP-spezifische Steuerkorrektur deutlich abgeschwächt, Lenkwert auf +/-0.075 begrenzt und MP-Geschwindigkeitssperre bei >18 km/h. Bestehender SP-Regler und Sicherheits-Watchdog unverändert.
+- FS25 übernimmt Multiplayer-Saves über einen temporären Snapshot. Kursdaten werden mit `ItemSystem.save` in dessen Verzeichnis geschrieben; der ursprüngliche Savegame-Pfad bleibt zur Ladenutzung fixiert. Verhindert das bisherige Verschwinden von XML-Daten beim Save-Promote.
+- Neue Server-Logmeldungen `SERVER-SAVE-TEMP` bzw. `SERVER-SAVE-TEMP FEHLER` liefern Nachweis über Pfad und Kursanzahl.
+- Geprüft: 25 Lua-Dateien syntaktisch, simulierter temporärer Savegame-Transfer und Neustart mit zwei Höfen, MP-Regler-Grenzwerte vs. unveränderte SP-Berechnung. Ingame-Lenkung und G-Portal-Persistenz müssen getestet werden.
+
 ## 0.9.9.49 – 12.10.2026 (EXPERIMENTELL / KURSABFRAGE + SPEICHERPFAD + MP-LENKEINGABE)
 - GPSFarmCourseEvent: REQUEST hat absichtlich keinen Payload und darf nicht als unbekannter Opcode verworfen werden. Beitritt/Hofwechsel laden jetzt initial Kurse vom Server.
 - Kursmanager: Original-Spielstanddatei beim ersten Load fixieren, nicht erneut aus tempsavegame laden oder die Kurstabelle leeren. Speichervorgang behält Hofkurse.
