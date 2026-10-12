@@ -96,6 +96,7 @@ function GPSFieldTest:loadMap()
     -- TerraLine stays OFF until the player explicitly enables it (Alt+T/menu).
     -- The saved course database is available to the menu even while OFF.
     self.masterEnabled=false
+    self.powerByFarm={} -- Local MP switch state, never a shared cross-farm master flag.
     self.defaultPowerHotkeyHeld=false
     self.lastPowerToggleAt=-9999
     if GPSCourseManager then GPSCourseManager.reset() end
@@ -148,7 +149,7 @@ function GPSFieldTest:deleteMap()
     if GPSABLineManager then GPSABLineManager.clear() end
     if GPSImplementDetector then GPSImplementDetector.override=nil end
     if GPSDisplaySettings then GPSDisplaySettings.reset() end
-    self.isLoaded=false;self.masterEnabled=false;self.currentVehicle=nil;self.shiftHeld=nil
+    self.isLoaded=false;self.masterEnabled=false;self.powerByFarm={};self.currentVehicle=nil;self.shiftHeld=nil
     self.defaultPowerHotkeyHeld=false
     self.defaultShiftRightHeld=false;self.defaultShiftLeftHeld=false
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Karte verlassen")
@@ -304,8 +305,27 @@ end
 function GPSFieldTest:isMasterEnabled()
     return self.masterEnabled~=false
 end
+-- Store power locally per farm. No cross-farm propagation; server never owns
+-- client power state. Initial state is OFF for each farm and session.
+function GPSFieldTest:syncPowerForFarm(farmId)
+    local power=self.powerByFarm and farmId and self.powerByFarm[farmId]==true or false
+    if self.masterEnabled~=power then
+        self.masterEnabled=power
+        self.shiftHeld=nil
+        self.assistLinesActivatedAtMs=nil
+        self.defaultShiftRightHeld=false
+        self.defaultShiftLeftHeld=false
+        GPSSteeringController.stop("Hofwechsel: Lenksystem aus")
+        if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("Hofwechsel") end
+        GPSLogger.info("HAUPTSCHALTER: Hof "..tostring(farmId or "-").." -> "..(power and "EIN (Lenkung aus)" or "AUS"))
+    end
+end
 function GPSFieldTest:setMasterEnabled(enabled)
     enabled=enabled==true
+    local farmId=GPSCourseManager and GPSCourseManager.getFarmId and GPSCourseManager.getFarmId()
+    if not farmId then return "TerraLine GPS: erst einem Hof beitreten" end
+    self.powerByFarm=self.powerByFarm or {}
+    self.powerByFarm[farmId]=enabled
     if self.masterEnabled==enabled then
         return "TerraLine GPS "..(enabled and "EIN" or "AUS")
     end
@@ -328,7 +348,7 @@ function GPSFieldTest:setMasterEnabled(enabled)
         if GPSAutoMirror then GPSAutoMirror.reset() end
     end
     local msg="TerraLine GPS "..(enabled and "EIN - Lenkung bleibt AUS" or "AUS - Lenkung, Linien und Tacho-Einblendung deaktiviert")
-    GPSLogger.info("HAUPTSCHALTER: "..msg)
+    GPSLogger.info("HAUPTSCHALTER Hof "..tostring(farmId)..": "..msg)
     return msg
 end
 function GPSFieldTest:commandMaster(value)
@@ -379,6 +399,7 @@ function GPSFieldTest:update(dt)
     self:pollDefaultPowerHotkey()
     if GPSCourseManager then
         GPSCourseManager.ensureLoaded()
+        if g_server~=nil and GPSCourseManager.installSaveHook then GPSCourseManager.installSaveHook() end
         -- Required on host and clients, including while TerraLine power is OFF.
         if GPSCourseManager.watchLocalFarm then GPSCourseManager.watchLocalFarm() end
         if GPSCourseManager.pollNetwork then GPSCourseManager.pollNetwork(dt) end

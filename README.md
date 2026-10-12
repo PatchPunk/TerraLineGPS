@@ -1,12 +1,12 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.45** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.47** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
 einstellbare Linienoptik und eine passwortgeschützte Entwicklerdiagnose.
 Die Hauptfunktion wurde in **0.9.9.43** im Spiel getestet und bestätigt;
-**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.45** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
+**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.47** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
 
 ## Installation für LS25
 
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_45.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_47.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -107,3 +107,11 @@ Siehe `docs/MP_TESTPLAN.md`.
 - Die 10.000-€-TerraLine-Ausstattung im Fahrzeugshop wird als eigenständiger nächster Entwicklungsschritt geplant; **in 0.9.9.46 nicht enthalten**.
 
 **MP-Tests mit zwei Clients und Dedicated Server stehen noch aus.**
+
+## Änderungen v0.9.9.47 – erneuter MP-Test nach Server-Neustart
+- Auf dem Dedicated Server wird die Kursdatei **nach jedem regulaeren Spielstand-Save** mit dem `FSBaseMission.saveSavegame`-Hook neu geschrieben.
+- Fuer die Ursachenpruefung erscheinen `SERVER-LOAD`, `SERVER-SAVE-HOOK installiert` und `SERVER-SAVE-HOOK: N Hofkurse ...` im Server-Log.
+- GPS-Hauptschalter ist pro Hof **lokal getrennt**. Erstbesuch eines Hofs startet AUS, erneuter Besuch verwendet den zuletzt in dieser Sitzung geschalteten Hofzustand. GPS-Lenkung stoppt beim Wechsel stets.
+- **Testfolge:** Testkurs in Hof 1 anlegen → in Hof 2 anlegen → Spiel speichern → Server stoppen → Server starten → je Hof die Kurse laden. Danach `SERVER-LOAD` und `SERVER-SAVE-HOOK` im Dedicated-Log kontrollieren.
+- Sicherheitsregel: Vor dem Test Savegame sichern. Kursdaten aus v0.9.9.46 nur erhalten, falls deren `terralineGPS.xml` im Original-Savegame noch existiert. Nicht automatisch rekonstruierbar.
+- Shop-Option (+10.000 EUR) weiterhin separat vorgesehen, NICHT eingebaut.

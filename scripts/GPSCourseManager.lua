@@ -61,7 +61,10 @@ function M.ensureLoaded()
     local path=filename()
     if not path or M.loadedPath==path then return end
     M.courses={};M.fieldNames={};M.nextId=1;M.loadedPath=path
-    if type(fileExists)~="function" or not fileExists(path) or type(loadXMLFile)~="function" then return end
+    if type(fileExists)~="function" or not fileExists(path) or type(loadXMLFile)~="function" then
+        log("SERVER-LOAD: keine Kursdatei unter "..tostring(path).." (neuer Stand oder Datei fehlt)")
+        return
+    end
     local ok,xml=pcall(loadXMLFile,"TerraLineCourses",path)
     if not ok or not xml or xml==0 then log("Kursdatei konnte nicht geladen werden");return end
     local success,err=pcall(function()
@@ -88,7 +91,7 @@ function M.ensureLoaded()
         end
     end)
     if type(delete)=="function" then pcall(delete,xml) end
-    if not success then log("Lesefehler: "..tostring(err)) else log(tostring(#M.courses).." Hofkurse geladen") end
+    if not success then log("Lesefehler: "..tostring(err)) else log("SERVER-LOAD: "..tostring(#M.courses).." Hofkurse geladen von "..tostring(path)) end
 end
 function M.persist()
     if remoteClient() then return false,"Nur der Server kann Hofkurse speichern" end
@@ -114,11 +117,40 @@ function M.persist()
             setXMLFloat(xml,k.."#width",c.width or 0)
             setXMLFloat(xml,k.."#offset",c.offset or 0)
         end
-        saveXMLFile(xml)
+        local result=saveXMLFile(xml)
         if type(delete)=="function" then delete(xml) end
+        if result==false then error("saveXMLFile gab false zurueck") end
     end)
     if not ok then log("Speicherfehler: "..tostring(err));return false,"Kursdatei konnte nicht geschrieben werden" end
+    if type(fileExists)=="function" and not fileExists(path) then
+        log("FEHLER: Kursdatei nach Speicherung nicht auffindbar: "..path)
+        return false,"Kursdatei nach Speicherung fehlt"
+    end
     return true,"Im Hof-Spielstand gespeichert"
+end
+
+-- FS25 dedicated saves may rebuild/clean the savegame directory. A custom
+-- XML written at course creation is not automatically included in the game's
+-- normal save. Re-write it AFTER the game's saveSavegame call finishes.
+-- The authoritative server retains the course table in memory throughout.
+function M.installSaveHook()
+    if M.saveHookInstalled then return true end
+    if type(FSBaseMission)~="table" or type(FSBaseMission.saveSavegame)~="function"
+       or type(Utils)~="table" or type(Utils.appendedFunction)~="function" then
+        return false
+    end
+    FSBaseMission.saveSavegame=Utils.appendedFunction(FSBaseMission.saveSavegame,function(mission,...)
+        if g_server==nil or mission~=g_currentMission then return end
+        local ok,msg=M.persist()
+        if ok then
+            log("SERVER-SAVE-HOOK: "..tostring(#M.courses).." Hofkurse in "..tostring(filename()).." geschrieben")
+        else
+            log("SERVER-SAVE-HOOK FEHLER: "..tostring(msg))
+        end
+    end)
+    M.saveHookInstalled=true
+    log("SERVER-SAVE-HOOK installiert (FSBaseMission.saveSavegame)")
+    return true
 end
 -- Farm changes are LOCAL player changes, even when this player is also the host.
 -- The shared server course database is never cleared by a farm switch.
@@ -153,6 +185,11 @@ function M.watchLocalFarm()
         GPSMenu.screen.page3Scroll=0
         GPSMenu.screen.page3PendingDelete=nil
         GPSMenu.screen.page3Message="Hofwechsel: GPS-Kurs und A/B-Referenz zurueckgesetzt"
+    end
+    -- Power is client-local and farm-specific; switching farms must not
+    -- inherit the last visited farm's ON state.
+    if GPSFieldTest and GPSFieldTest.syncPowerForFarm then
+        GPSFieldTest:syncPowerForFarm(farmId)
     end
     log("Hofwechsel "..tostring(previous).." -> "..tostring(marker)..": lokale GPS-Spur entfernt")
 end

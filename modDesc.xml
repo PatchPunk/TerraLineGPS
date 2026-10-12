@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <modDesc descVersion="114">
   <author>TerraLine GPS Project</author>
-  <version>0.9.9.46</version>
+  <version>0.9.9.47</version>
   <title><en>TerraLine GPS</en><de>TerraLine GPS</de></title>
   <iconFilename>icon_terraline.dds</iconFilename>
   <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Multiplayer development test: farm course synchronization; steering in MP not yet verified.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. MP-Entwicklungstest: Hofkurse synchronisieren; GPS-Lenkung im MP noch nicht freigegeben.</de></description>

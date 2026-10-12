@@ -1,3 +1,11 @@
+## 0.9.9.47 – 12.10.2026 (EXPERIMENTELL / MP-PERSISTENZ + HOFTRENNUNG)
+- Korrigiert: Der GIANTS-Server-Save-Vorgang kann fremde XML-Dateien entfernen. Der Kursmanager schreibt terralineGPS.xml per FSBaseMission.saveSavegame-Hook nach jedem regulaeren Spielstand-Save erneut.
+- Mehr Diagnose: SERVER-LOAD mit tatsächlichem Pfad und Kursanzahl, SERVER-SAVE-HOOK installiert und Anzahl der gespeicherten Kurse bzw. Fehler.
+- TerraLine-Hauptschalter lokal je Hof getrennt: bei erstmaligem Hofbeitritt AUS; beim Wechsel kein Uebernehmen des Zustands anderer Hoefe. Alle aktiven Lenkungen werden beim Hofwechsel gestoppt.
+- Unveraendert: GPS-Steuerung, A/B-Geometrie, GUI und bestehende Netzwerknachrichten.
+- Simulation: reguläres Speichern bereinigt XML, Hook stellt die Datei wieder her, nach Neustart laedt der Server den Kurs; getrennte Hauptschalter Hof 1/2 getestet.
+- Echte G-Portal-Neustart-Pruefung noch offen. Bereits geloeschte Kursdateien werden nicht automatisch wiederhergestellt.
+
 ## 0.9.9.46 – 12.10.2026 (EXPERIMENTELL / MP-BUGFIX)
 - TerraLine GPS ist beim Laden eines Spielstands zunächst AUS.
 - Aktive A/B-Linie, Kursname und GPS-Lenkung werden bei Hofwechsel (Host und Client) zurückgesetzt.

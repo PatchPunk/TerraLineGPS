@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.46 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.47 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -58,3 +58,10 @@ MP TESTBUILD 0.9.9.46 (Korrektur nach MP-Tester-Feedback)
 - Ein Kursname wird nicht mehr vor der bestaetigten Speicherung als gespeichert dargestellt.
 - Fremde Hofkurse koennen nicht ueber die lokale Kursverwaltung geladen werden.
 - Shop-Aufpreis (10.000 Euro) ist fuer die folgende Entwicklungsstufe vorgesehen; NICHT in diesem Build aktiv.
+
+MP TESTBUILD 0.9.9.47 (nach Dedicated-Neustart-/Hof-Feedback)
+- Hofbezogener GPS-Hauptschalter: jeder Hof hat einen getrennten lokalen AN/AUS-Zustand. Beim allerersten Betreten eines Hofs AUS. Hofwechsel beeinflusst andere Hoefe nicht.
+- Server-Schreibhook FSBaseMission.saveSavegame: nach regulaerem Spielstand-Save wird terralineGPS.xml aus dem Serverspeicher neu geschrieben, damit das Spiel die eigene XML nicht dauerhaft entfernt.
+- Server-Logs melden SERVER-LOAD, SERVER-SAVE-HOOK installiert und SERVER-SAVE-HOOK mit Dateipfad und Anzahl Kurse; auf Host/Dedicated vergleichen.
+- ACHTUNG: Die schon verlorenen Kurse aus frueheren Versionen werden nicht automatisch zurueckgewonnen; vorhandene Server-Spielstanddateien sichern.
+- Kauf-/Werkstatt-Option +10.000 Euro ist separat geplant, hier NICHT eingebaut.
