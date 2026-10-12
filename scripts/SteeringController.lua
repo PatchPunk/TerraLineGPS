@@ -196,16 +196,28 @@ function C.updateNetworkSteering(dt,vehicle)
     if C.waitingForMotion then C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv") end
     local value=C.compute(vehicle,dt,true)
     if value==nil then return end
-    C.networkSteeringValue=value
+    -- v0.9.9.52: physical steering polarity in the normal Drivable input path
+    -- differs from the previous direct physics-hook convention. Field feedback
+    -- from v0.9.9.52: the vehicle turns AWAY from the target A/B line.
+    -- Keep the guidance calculation and SP path unchanged, but invert ONLY the
+    -- MP input sent into the native steering function. Do not invert the
+    -- stored logical guidance value, which the deviation watchdog uses.
+    local nativeInput=-value
+    C.networkSteeringValue=nativeInput
     -- Mark synthetic input so the manual-driver input wrapper doesn't treat
     -- TerraLine as a user intervention. The normal Drivable steering-wheel
     -- interpolation and multiplayer transmission execute in the game loop.
     C.injectingInput=true
-    local ok,err=pcall(vehicle.setSteeringInput,vehicle,value,true,InputDevice and InputDevice.CATEGORY and InputDevice.CATEGORY.GAMEPAD)
+    local ok,err=pcall(vehicle.setSteeringInput,vehicle,nativeInput,true,InputDevice and InputDevice.CATEGORY and InputDevice.CATEGORY.GAMEPAD)
     C.injectingInput=false
     if not ok then C.stop("MP: Lenkeingabe-Fehler "..tostring(err));return end
+    C.nativeLogClock=(C.nativeLogClock or 0)+(dt or 0)
+    if C.nativeLogClock>=1500 then
+        C.nativeLogClock=0
+        log(string.format("MP INPUT: offset=%+.2fm logisch=%+.3f an Drivable=%+.3f",C.lastCross or 0,value,nativeInput))
+    end
     if not C.networkPathLogged then
         C.networkPathLogged=true
-        log("MP-CLIENT: normaler Lenkeingang aktiv (Lenkrad + Fahrzeug), Vorhaltepunkt, max 18 km/h, v0.9.9.51")
+        log("MP-CLIENT: normaler Lenkeingang aktiv (Lenkrad + Fahrzeug), Vorhaltepunkt, max 18 km/h, v0.9.9.52")
     end
 end

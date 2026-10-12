@@ -1,3 +1,10 @@
+## 0.9.9.52 – 12.10.2026 (EXPERIMENTELL / MP LENKRICHTUNG)
+- V51-Dedicated-Client-Logs: `GPS-LENK MP-CLIENT` aktiv, danach mehrfach `Abweichung zu gross`; bestätigte Nutzerbeobachtung: Steuerung lenkt in die falsche Richtung.
+- Korrektur: Logischer Korrekturwert bleibt unverändert, aber vor `vehicle:setSteeringInput` wird das Vorzeichen ausschließlich für den MP-Drivable-Eingang umgekehrt. Die bisherige physische Achsenannahme aus dem alten Physics-Hook war auf dem nativen Drivable-Eingang offenbar nicht passend.
+- Neues `MP INPUT`-Telemetry (Offset, logisch, an Drivable) alle ~1,5s.
+- 25/25 Lua-Dateien Syntax geprüft, modDesc/ZIP konsistent. Keine Änderung an `GPSCourseManager.lua` oder bestehenden SP-Funktionen.
+- Erfolgreicher MP-Lenkrichtungstest fehlt weiterhin: diese Änderung ist eine empirisch begründete Hypothese, keine bestätigte Ingame-Reparatur.
+
 ## 0.9.9.51 – 12.10.2026 (EXPERIMENTELL / MP-VORHALTEPUNKT + NORMALER LENKEINGANG)
 - MP-Lenkeinfluss aus direkter Drivable.axisSide-Manipulation auf reguläre `vehicle:setSteeringInput`-Aufrufe umgestellt. GIANTS integriert die Lenkbewegung und versendet die vorhandene Fahrzeug-Update-Stream-Synchronisierung.
 - Geometrische Vorhaltepunkt-Steuerung: Korrekturrichtung anhand der relativen Position und Fahrtrichtung normalisiert, ohne Änderung am funktionierenden SP-Regler.
