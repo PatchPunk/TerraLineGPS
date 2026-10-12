@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.58** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.59** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_55.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_59.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -31,7 +31,7 @@ aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 | `Alt+R` | Spur 90° drehen |
 | `Alt+Bild↑ / Alt+Bild↓` | Gesamten A/B-Kurs in 1-cm-Schritten verschieben |
 
-Die zwei zusätzlichen Buttons im Entwicklermenü sind noch Platzhalter.
+Die beiden Entwicklerbuttons `DIAG EIN` / `DIAG AUS` steuern die detaillierte Protokollierung; standardmäßig ist sie AUS. Developer-Funktionalität: `scripts/GPSDeveloperMenu.lua`; die sichtbare UI dazu: `scripts/GPSMenuPage4.lua`.
 Die Entwickler-PIN ist im Lua-Quellcode einsehbar und **kein echter Zugriffsschutz**.
 
 ## Repository-Organisation
@@ -192,3 +192,11 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - Dynamische HUD-Pixelskalierung; wenn links kein Platz ist, wird lieber nichts eingeblendet, als den Tacho zu überdecken. Keine Anzeige für Fahrzeuge ohne gekaufte Ausstattung.
 - `GPSFieldTest.lua`, `GPSVehicleEquipment.lua`, Menü, Steuerung, Kursspeicherung und sämtliche übrigen Skripte unverändert gegenüber v57. Einzige weiteren Änderungen sind Modversionsdaten und Dokumentation.
 - Lokaler HUD-Laufzeittest mit gemockter LS25-Schnittstelle: alle drei Zustände, dynamische Position, Nullausstattung und Platzmangel korrekt; alle 27 Lua-Skripte syntaktisch geprüft, ZIP mit 39 Einträgen validiert. **Ingame-Ansicht noch nicht bestätigt.**
+
+
+### v0.9.9.59 – leichte Transparenz am freigegebenen Tacho-Badge
+- Reales Nutzer-Screenshot bestätigt das v58-Layout links neben dem runden Tachometer. Nutzer wünscht nur noch leichte Hintergrundtransparenz, übriges Layout ist freigegeben.
+- Hintergrund jetzt **78 % Deckkraft**, statt 88 %; drei **nicht überlappende** Rechtecke verhindern die bisher fast undurchsichtige doppelte Alphamischung der Badge-Mitte. Symbol, Texte und Statusakzent bleiben voll lesbar.
+- 27 Lua-Skripte syntaktisch geprüft; Lua-Zeichentest für AUS/BEREIT/AUTO, gleichmäßige Transparenz, kein Badge ohne Ausstattung, keine Überdeckung des Tachometers bestanden. Ingame-Transparenz noch zu bestätigen.
+- Steuerung bis 30 km/h, Shop-Ausstattung +10.000 €, Hofkurse, Menüsperre und MP-Funktionen byte-identisch zu v58.
+- Verbleibende Tests: Werkstatt-Nachrüstung und Rückbau, Ausstattung nach Savegame/Server-Restart, SP-Regression, Host-Spiel und unabhängige Clients; simultaner Zwei-Spieler-Test aktuell nicht durchführbar und muss vor voller MP-Freigabe nachgeholt werden.

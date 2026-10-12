@@ -1,4 +1,4 @@
--- TerraLine GPS v0.9.9.58 | Compact equipped-vehicle badge at the LEFT of the FS25 speedometer.
+-- TerraLine GPS v0.9.9.59 | Compact equipped-vehicle badge at the LEFT of the FS25 speedometer.
 -- Native HUD stays intact: never draw on top of fill-type status above the gauge.
 GPSTachoStatus = {}
 local H = GPSTachoStatus
@@ -61,9 +61,13 @@ function H.draw(display, vehicle)
     -- drawFilledRect is the native GIANTS UI rectangle primitive, also used by
     -- the existing TerraLine menus. No external textures or extra HUD panels.
     if type(drawFilledRect) == "function" then
-        local darkR, darkG, darkB, opacity = 0.10, 0.12, 0.14, 0.88
-        drawFilledRect(x + corner, y, badgeW - 2*corner, badgeH, darkR, darkG, darkB, opacity)
+        -- Mild transparency: a single layer in every pixel.  Previously the
+        -- two overlapping rounded-rectangle primitives composited twice,
+        -- making the center look nearly opaque even with alpha < 1.
+        local darkR, darkG, darkB, opacity = 0.10, 0.12, 0.14, 0.78
+        drawFilledRect(x + corner, y, badgeW - 2*corner, corner, darkR, darkG, darkB, opacity)
         drawFilledRect(x, y + corner, badgeW, badgeH - 2*corner, darkR, darkG, darkB, opacity)
+        drawFilledRect(x + corner, y + badgeH - corner, badgeW - 2*corner, corner, darkR, darkG, darkB, opacity)
         local accentY = y + badgeH*0.18
         drawFilledRect(x + accent, accentY, accent, badgeH*0.64, r, g, b, 0.96)
     end

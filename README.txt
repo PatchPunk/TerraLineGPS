@@ -135,3 +135,11 @@ v0.9.9.58 - Kompakte Tachoplakette (freigegebener Entwurf):
 - Native HUD-Skalierung bestimmt Position und Masse; ohne Ausruestung unsichtbar.
 - Shop, 10000-EUR-Konfiguration, Menuesperre, GPS-Lenkung und Farmkurse unveraendert.
 - Lokale Lua-/HUD-Tests bestanden; LS25-Ingame-Darstellung noch pruefen.
+
+
+v0.9.9.59 - Dezente Transparenz der seitlichen Tachoplakette:
+- Auf Nutzertest basierende, genehmigte Position LINKS neben dem Geschwindigkeitstacho bleibt exakt unveraendert.
+- Dunkler Hintergrund jetzt mit gleichmaessig leichter Transparenz (Alpha 0.78).
+- Drei Rechteckstreifen ohne gegenseitige Ueberlappung statt doppelter Alpha-Ueberlagerung in der Mitte.
+- GPS-Symbol, Statusfarben, Text, 10000-Euro-Shopkonfiguration und restlicher GPS-Code unveraendert.
+- Nach LS25-Update auf Client/Server pruefen.

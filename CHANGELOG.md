@@ -1,3 +1,9 @@
+## 0.9.9.59 – 12.10.2026 (DEZENTE, GLEICHMAESSIGE BADGE-TRANSPARENZ)
+- Nutzer bestätigt v58-Position und Design der Statusplakette links neben Geschwindigkeitstacho. Gewünscht: leichte Transparenz.
+- `GPSTachoStatus.lua`: Badge-Hintergrund Alpha .78 statt .88. Drei aneinanderstoßende Teilflächen ohne Overdraw (oben / Mitte / unten) statt sich überlagernder Rechtecke; verhindert ungleichmäßig abgedunkeltes Zentrum. Symbol/Statusbalken/Text unverändert, keine neue Zeichengeometrie außerhalb vorhandener Badge-Abmessungen.
+- Nur GPSTachoStatus.lua sowie README.txt, Config.lua, modDesc.xml geändert. Tests: 27/27 Lua Syntax; echte Lua Runtime Assertions für alle 3 Zustände und nicht überlappende Hintergründe; ZIP CRC/XML und Bytevergleich übriger Skripte erfolgreich.
+- Reale LS25-Transparenz noch nicht nach Nutzer-Update bestätigt. Multiplayer-Zwei-Spieler- und Host-Abnahmetests offen.
+
 ## 0.9.9.58 – 12.10.2026 (KOMPAKTE TACHOPLAKETTE – NUTZER FREIGEGEBEN)
 - Screenshot-Test v57: TerraLine-Text überlappt mit Weizen-/Füllstandsbalken und passt nicht zum nativen Tacho. Nutzer hat kompakte dunkle Plakette **links neben dem runden Geschwindigkeitsmesser** genehmigt.
 - Neue `GPSTachoStatus`-Darstellung: kompakte dunkle 124×55 HUD-Pixel-Plakette, native `gui.icon_gps`-Grafik, kleiner farbiger Statusbalken, zwei Textzeilen `TL GPS` und `AUS` (grau) / `BEREIT` (grün) / `AUTO AKTIV` (grün).
