@@ -51,8 +51,9 @@ IMPORTANT BETA INFORMATION
 - gsGPSSteerTest is disabled in this public beta.
 - No paid downloads. Not an official GIANTS product.
 
-FEEDBACK AND SOURCE CODE
-https://github.com/PatchPunk/TerraLineGPS
+CONTACT AND FEEDBACK
+Email: patchpunk@mail.de
+The GitHub repository is currently private and not a public support channel.
 For bug reports, include your FS25 version, mod version, reproduction
 steps, and client/server log files wherever possible.
 Please report issues before continuing to use a beta savegame for

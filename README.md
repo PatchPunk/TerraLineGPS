@@ -215,3 +215,6 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - Deutsche Dokumente `README.txt` und `PROJECT_NOTICE.txt` bleiben erhalten.
 - Neue vollständige englische Fassungen `README_EN.txt` und `PROJECT_NOTICE_EN.txt` ins Mod-Root aufgenommen; Installation, Tasten, Funktionen, Grenzen und Warnhinweise analog DE. Die vom Nutzer vorgelegte aktualisierte deutsche `PROJECT_NOTICE.txt` ist uebernommen (Formulierung zur Herkunft der Assets ohne KI-Zusatz, wie hochgeladen).
 - ZIP `FS25_TerraLineGPS_v0_9_9_60_beta_bilingual_candidate.zip` enthält 41 statt 39 Dateien. Kein Lua-/XML-/Asset-Austausch gegenüber v0.9.9.60 Erstkandidat; ZIP-CRC sowie byteidentischer Vergleich aller Original-Implementierungsdateien bestanden. Nicht im Spiel getestet, noch nicht veroeffentlicht.
+
+
+**Öffentliche Beta-Kontaktadresse:** [patchpunk@mail.de](mailto:patchpunk@mail.de). Kontakt für Fehlerberichte und Vorschläge; GitHub-Repository bleibt bis zur gesonderten Freigabe privat. Die deutsche und englische README in der Beta-ZIP verweisen auf diese Adresse.

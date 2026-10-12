@@ -43,7 +43,8 @@ WICHTIG ZUR BETA
 - gsGPSSteerTest wurde fuer die Public Beta deaktiviert.
 - Keine kostenpflichtigen Downloads / kein offizielles GIANTS-Produkt.
 
-FEEDBACK UND QUELLKODE
-https://github.com/PatchPunk/TerraLineGPS
+KONTAKT UND FEEDBACK
+E-Mail: patchpunk@mail.de
+Das GitHub-Repository ist derzeit privat und kein oeffentlicher Support-Kanal.
 Bugs moeglichst mit LS25-Version, Modversion, Schritten und Client-/Server-Log.
 Bitte melde Fehler, bevor du einen Beta-Spielstand produktiv weiterfuehrst.

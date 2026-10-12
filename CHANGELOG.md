@@ -1,3 +1,8 @@
+## 0.9.9.60 – 12.10.2026 (Bilingual candidate: PatchPunk contact)
+- Added `patchpunk@mail.de` as official public beta contact in German `README.txt` and English `README_EN.txt`.
+- Replaced unusable private GitHub feedback link in the two public-facing readmes with email contact and a note that the repository is private.
+- 41 ZIP files; only `README.txt` and `README_EN.txt` differ from previous bilingual candidate. 39 other files byte-for-byte unchanged; ZIP CRC valid. No Lua code changes or new ingame test; not yet publicly released.
+
 ## 0.9.9.60 Bilingual Candidate – 12.10.2026
 - Added English translations `README_EN.txt` and `PROJECT_NOTICE_EN.txt`; original German `README.txt` retained. Updated German `PROJECT_NOTICE.txt` to the supplied version.
 - Release ZIP contains 41 files; no Lua, XML, audio or graphic code/content changes relative to previous v0.9.9.60 candidate. ZIP CRC/integrity verified. In-game testing still pending; do not publish or merge.
