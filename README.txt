@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.56 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.57 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -90,7 +90,7 @@ v0.9.9.52 - experimenteller MP-Lenkrichtungstest:
 - Keine MP-Freigabe vor einem erfolgreichen echten Fahrtest.
 
 
-v0.9.9.56 - MP 30 km/h + ruhiges Konsolenprotokoll:
+v0.9.9.57 - MP 30 km/h + ruhiges Konsolenprotokoll:
 - MP-Spurhaltung ist bis 30 km/h aktivierbar und schaltet oberhalb von 30 km/h ab; Richtungsregelung aus v0.9.9.52 bleibt unveraendert.
 - Laufende Messwerte (Lenkwert, Trend, Spurabweichung, Geraetespur, wiederholte Kurs-Polls) sind standardmaessig stumm.
 - Bei GPSConfig.showDiagnostics=true erscheinen diese Meldungen als [TerraLine GPS] DIAG ...
@@ -99,20 +99,30 @@ v0.9.9.56 - MP 30 km/h + ruhiges Konsolenprotokoll:
 - Server-Kursspeicherung und Sync unveraendert.
 
 
-v0.9.9.56 - Entwicklerdiagnose per Menue schaltbar:
+v0.9.9.57 - Entwicklerdiagnose per Menue schaltbar:
 - Im bereits vorhandenen Entwicklermenue sind die beiden Options-Tasten jetzt DIAG EIN und DIAG AUS.
 - Diagnose startet standardmaessig AUS; Freischalten des Entwicklermenues aendert dies nicht.
 - Im laufenden Spiel kann der Entwickler die detaillierten Logger-Messwerte lokal umschalten.
 - Kurs-Speicherung, 30-km/h-Grenze und bestaetigte MP-Lenkrichtung bleiben unveraendert.
 
 
-## 0.9.9.56 (EXPERIMENTELL)
+## 0.9.9.57 (EXPERIMENTELL)
 Fahrzeug-Konfiguration TerraLine GPS im nativen LS25-Shop: Ohne (0 EUR, Standard), Mit (+10.000 EUR). Mit dem Fahrzeug gespeicherte Ausstattung, ueber die originale Werkstatt-Konfiguration nachruestbar. Bei alten Fahrzeugen standardmaessig nicht eingebaut. Nur mit GPS-Ausstattung Aktivierung moeglich. Native Tacho-Anzeige: TL GPS AUS (grau), TL GPS BEREIT (gruen), TL AUTO AKTIV (gruen). GPS startet pro Fahrzeug AUS. Keine neue Shopseite. 
 
 
-v0.9.9.56 - Kritischer Shop-Hotfix:
+v0.9.9.57 - Kritischer Shop-Hotfix:
 - Verwechslung von manager und superFunc in Utils.overwrittenFunction behoben.
 - Der originale GIANTS-Fahrzeugloader wird korrekt weitergereicht.
 - Die TerraLine-Zusatzkonfiguration deaktiviert sich bei eigenem Fehler einmalig ohne Log-Flut.
 - Die funktionierende 30-km/h-Lenkung, Kurs-Persistenz und Tacho-Darstellung sind unveraendert.
 - Test im LS25 Shop / Dedicated erforderlich.
+
+
+v0.9.9.57 - Natives Shop-GPS und Tacho (Hotfix):
+- Kein TerraLine-GPS-Menue mehr, wenn das kontrollierte Fahrzeug keine gekaufte Ausstattung besitzt; Alle Zugriffswege gesperrt.
+- In Fahrzeugen mit TerraLine GPS bleibt das Menue auch bei Hauptschalter AUS erreichbar.
+- Tachoanzeige repariert: FS25 benutzt speedBg (nicht gaugeBackgroundElement wie FS22).
+- Status: TL GPS AUS / TL GPS BEREIT / TL AUTO AKTIV; ohne Ausstattung keine Anzeige.
+- Shop-XML-Pruefung ignoriert Gebaeude- und andere Nichtfahrzeug-Kategorien vor dem Zugriff auf vehicle XML-Felder.
+- Lenkung, Kurs-Speicherung, MP-Kommunikation und 30-km/h-Grenze unveraendert.
+- Test: V57 muss auf Client und Server installiert sein; Shop und Tacho real pruefen.

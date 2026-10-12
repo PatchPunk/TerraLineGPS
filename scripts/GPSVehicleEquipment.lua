@@ -1,4 +1,4 @@
--- TerraLine GPS 0.9.9.56 | Native FS25 vehicle shop configuration.
+-- TerraLine GPS 0.9.9.57 | Native FS25 vehicle shop configuration.
 -- Follows the stock Precision Farming crop/manure sensor configuration path.
 GPSVehicleEquipment = {configName = "terraLineGPS", price = 10000, hookInstalled = false}
 local E = GPSVehicleEquipment
@@ -29,10 +29,10 @@ local eligibleTypes = {
 function E.isEligible(xmlFile, storeItem)
     if xmlFile==nil or type(xmlFile.getValue)~="function" then return false end
     local category=storeItem and tostring(storeItem.categoryName or ""):upper() or ""
-    local vehicleType=xmlFile:getValue("vehicle#type", "")
-    local allowCategory=eligibleCategories[category] == true
-    local allowType=eligibleTypes[vehicleType] == true
-    if not (allowCategory or allowType) then return false end
+    -- Called for ALL store items, including placeables, by GIANTS. Never read
+    -- vehicle#type from a placeable-schema XML: the getter emits engine errors.
+    -- Category is reliable for eligible powered vehicles and cheap to inspect.
+    if eligibleCategories[category] ~= true then return false end
     -- A shared shop category such as SPRAYERS can also contain implements.
     -- Both nodes must be present: an engine AND a place for the driver.
     -- Do not silently offer a 10,000 EUR GPS unit on unpowered trailers.

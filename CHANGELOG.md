@@ -1,3 +1,11 @@
+## 0.9.9.57 – 12.10.2026 (SHOP-XML-FIX + MENÜ-SPERRE + NATIVER FS25-TACHO)
+- Logs v56: Server und Client melden unerlaubte XML-Schema-Zugriffe `vehicle#type` bei `data/placeables/...`: Shop-Eligibility prüft Kategorie jetzt VOR XML-Zugriff.
+- Ein Fahrzeug ohne gekaufte TerraLine-Ausstattung kann das Menü nicht mehr über Alt+M (native und Fallback), Konsolenbefehl oder anderen `GPSMenu.toggle`-Aufruf öffnen. Offenes Menü schließt bei Fahrzeugwechsel oder Ausbau automatisch.
+- Die zusätzliche Statusanzeige im GIANTS-Tacho war unsichtbar, da die v55/v56-Version `gaugeBackgroundElement` aus älteren FS-Versionen verwendete. FS25 dokumentiert `SpeedMeterDisplay.speedBg`; Statuslabel wird nun an die echte Position des Speedmeter-Overlays gekoppelt, inkl. HUD-Skalierung.
+- Drei freigegebene Statusfarben/-texte beibehalten, ohne Ausstattung keine Anzeige. Kein neues Menü oder Layout.
+- Test: 27 Lua-Skripte syntaktisch kompiliert; Lua-Mocktest native Konfiguration 0/10000, Placeable-Ausschluss ohne Fahrzeug-XML-Zugriff, Menü-Sperre und Auto-Close, Tacho AUS/BEREIT/AKTIV. ZIP 39 Dateien OK. Echte GIANTS-Rendering-Validierung ausstehend.
+- SteeringController, GPSCourseManager, GPSFarmCourseEvent und TrackPosition exakt unverändert zu v56.
+
 ## 0.9.9.56 – 12.10.2026 (KRITISCHER SHOP-CRASH-HOTFIX)
 - Nutzerlogs von v55 Server/Client: `GPSVehicleEquipment.lua:62: attempt to call a table value` tausendfach bei jedem Fahrzeuglade/Engine-Update, danach `Script error in openIntervalTimer: No more interval timers`. V55 darf nicht weiter genutzt werden.
 - Native `ConfigurationUtil.getConfigurationsFromXML` via `Utils.overwrittenFunction`: `manager` und `superFunc` standen in falscher Reihenfolge; korrektes Weiterleiten des Originalaufrufs und Ergebnisses hergestellt.

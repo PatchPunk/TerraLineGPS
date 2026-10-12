@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.56** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.57** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -176,3 +176,11 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - Optionale Erweiterungsfehler werden einmalig geloggt und Shop-Erweiterung lokal deaktiviert; Original-GIANTS-Loader läuft weiter.
 - GIANTS-Quell-Dokumentation geprüft; Lua 5.4-Syntax für 27 Modscripts, Mock-GIANTS-Fahrzeuglade- und Konfigurations-Tests inkl. 200 wiederholten Fehleraufrufen bestanden. Die echte Shop-/Werkstatt-Integration muss noch im Spiel bestätigt werden.
 - **SteeringController, GPSFieldTest, GPSCourseManager, GPSFarmCourseEvent, GPSTachoStatus exakt unverändert** gegenüber v55. PR weiterhin Draft.
+
+
+### v0.9.9.57 – Menü-Ausstattungssperre und FS25-Tachoanzeige
+- Nur mit tatsächlich gekauftem `vehicle.configurations.terraLineGPS == 2` darf das TerraLine-Menü geöffnet werden. Zentrale Kontrolle in `GPSMenu.toggle()` deckt Alt+M (beide Wege), Konsole `gsGPSMenu` und native InputAction ab. Bei Fahrzeugwechsel bzw. Entfernen der GPS-Ausstattung schließt das Menü automatisch. **Ausgestattetes Fahrzeug mit GPS AUS darf das Menü weiterhin öffnen.**
+- `GPSTachoStatus`: Vorheriger FS22-Anker `gaugeBackgroundElement` existiert im FS25 nicht. Status nun an `SpeedMeterDisplay.speedBg` mit dessen aktueller Position und HUD-Skalierung, unveränderten Anzeigen `TL GPS AUS`/`TL GPS BEREIT`/`TL AUTO AKTIV`.
+- In `GPSVehicleEquipment.isEligible` zuerst Shop-Kategorie prüfen; ausschließlich geeignete motorisierte Fahrerfahrzeuge lesen Fahrzeug-XML. Verhindert Hunderte XML-Schema-Fehler (`vehicle#type` auf Placeable-Schema) aus v56.
+- 27/27 Lua-Syntaxprüfungen, nativer Speedmeter-/Menü-/Shop-Mock-Laufzeittest und ZIP-CRC/Versionsprüfung bestanden. **Echter LS25-Tacho- und Shoptest noch offen.**
+- Lenkung bis 30 km/h, `SteeringController`, Hofkurs-Persistenz und Multiplayer-Kursprotokoll bytegenau unverändert gegenüber v56.
