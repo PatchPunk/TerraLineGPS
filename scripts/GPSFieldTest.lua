@@ -1,4 +1,4 @@
--- TerraLine GPS | Interne Projektmarke: Hallo hier bin ich, der CODE! | TL-GPS/2026-10-12
+-- TerraLine GPS | PatchPunk Public Beta | 2026-10-12
 -- TerraLine GPS v0.9.9.23: user-defined A/B only; independent of farmland.
 local GPS_MOD_DIRECTORY = g_currentModDirectory
 GPSFieldTest = {isLoaded=false,masterEnabled=false,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
@@ -833,7 +833,7 @@ addModEventListener(GPSFieldTest)
 if type(addConsoleCommand)=="function" then
     addConsoleCommand("gsGPSPower","TerraLine GPS Hauptschalter: on/off/toggle","commandMaster",GPSFieldTest)
     addConsoleCommand("gsGPSMenu","GPS Einstellungsmenue oeffnen/schliessen","commandMenu",GPSFieldTest)
-    addConsoleCommand("gsGPSSteerTest","Kurzer Diagnoseimpuls: left/right","commandSteerTest",GPSFieldTest)
+    -- gsGPSSteerTest is intentionally not exposed in the public beta.
     addConsoleCommand("gsGPSSteerReport","Diagnosebericht der Lenkung","commandSteerReport",GPSFieldTest)
     addConsoleCommand("gsGPSAssist","GPS Spurhaltung ein/aus (0-30 km/h, gerade Spuren)","commandAssist",GPSFieldTest)
     addConsoleCommand("gsGPSA","GPS Punkt A am Traktor setzen","commandA",GPSFieldTest)

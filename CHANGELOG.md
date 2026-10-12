@@ -1,3 +1,10 @@
+## 0.9.9.60 – 12.10.2026 (PUBLIC BETA CANDIDATE – NOT YET RELEASED)
+- Free public PC beta candidate for Mod für Farming Simulator 25 under author PatchPunk; readme/description/notices updated to real v59 confirmed capabilities and known two-player MP limitation.
+- Disabled active steering-test console command `gsGPSSteerTest`; `GPSSteeringDiagnostics.start` fails closed whenever beta mode is enabled or unset. No changes to the actual GPS assist steering module.
+- Farm course permissions confirmed by owner: ALL members of same farm can save/delete farm courses; existing server farm-ID check enforces isolation. No farm manager-only permission gate.
+- Code changes limited to `scripts/Config.lua`, `scripts/GPSFieldTest.lua`, `scripts/SteeringDiagnostics.lua`, plus updated `modDesc.xml`, `README.txt`, `PROJECT_NOTICE.txt`. 33 other ZIP members byte-identical to v59.
+- 27/27 Lua syntax checked; XML parsed; ZIP 39 files CRC OK; live Lua mock diagnostics checks pass for beta flag ON/missing. Original v59 unchanged. **Public-Beta candidate NOT YET INGAME TESTED OR PUBLISHED**. PR remains Draft.
+
 ## 0.9.9.59 – 12.10.2026 (DEZENTE, GLEICHMAESSIGE BADGE-TRANSPARENZ)
 - Nutzer bestätigt v58-Position und Design der Statusplakette links neben Geschwindigkeitstacho. Gewünscht: leichte Transparenz.
 - `GPSTachoStatus.lua`: Badge-Hintergrund Alpha .78 statt .88. Drei aneinanderstoßende Teilflächen ohne Overdraw (oben / Mitte / unten) statt sich überlagernder Rechtecke; verhindert ungleichmäßig abgedunkeltes Zentrum. Symbol/Statusbalken/Text unverändert, keine neue Zeichengeometrie außerhalb vorhandener Badge-Abmessungen.

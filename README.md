@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.59** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.60** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_59.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_60_beta_candidate.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -200,3 +200,12 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - 27 Lua-Skripte syntaktisch geprüft; Lua-Zeichentest für AUS/BEREIT/AUTO, gleichmäßige Transparenz, kein Badge ohne Ausstattung, keine Überdeckung des Tachometers bestanden. Ingame-Transparenz noch zu bestätigen.
 - Steuerung bis 30 km/h, Shop-Ausstattung +10.000 €, Hofkurse, Menüsperre und MP-Funktionen byte-identisch zu v58.
 - Verbleibende Tests: Werkstatt-Nachrüstung und Rückbau, Ausstattung nach Savegame/Server-Restart, SP-Regression, Host-Spiel und unabhängige Clients; simultaner Zwei-Spieler-Test aktuell nicht durchführbar und muss vor voller MP-Freigabe nachgeholt werden.
+
+
+### v0.9.9.60 – Public-Beta-RELEASEKANDIDAT (NICHT FREIGEGEBEN)
+- Autor in `modDesc.xml` ist **PatchPunk**. Aktualisierte deutsche/englische Description, `PROJECT_NOTICE.txt` sowie `README.txt` geben Funktionen, Herkunft der Assets, bekannte Grenzen, MP-Status und GIANTS-Hinweis `Mod für Farming Simulator 25` korrekt wieder.
+- Experimenteller, physisch eingreifender Konsolenbefehl `gsGPSSteerTest` in `scripts/GPSFieldTest.lua` NICHT mehr registriert. `GPSSteeringDiagnostics.start()` verweigert im Public-Beta-Build außerdem jeden Start (auch bei direktem Lua-Aufruf oder fehlendem Beta-Flag); Diagnose-Report und reine Abfragen bleiben verfügbar. **Keine Änderungen an `scripts/SteeringController.lua`.**
+- Rechte-Regel ist verbindlich: Jedes Hofmitglied darf **eigene Hofkurse** speichern/löschen; der Server ermittelt Hofzugehörigkeit aus der echten Verbindung. Kein zusätzlicher Hofmanager-Check notwendig. Keine Änderung am Kursmanager.
+- Differenz zur v0.9.9.59-ZIP: genau 6 Dateien (`PROJECT_NOTICE.txt`, `README.txt`, `modDesc.xml`, `scripts/Config.lua`, `scripts/GPSFieldTest.lua`, `scripts/SteeringDiagnostics.lua`). 33 weitere Bestandteile byte-identisch (inkl. Lenkung, Hofkurse, Events, Shop/Tacho).
+- Lokal geprüft: 27/27 Lua-Syntax, `modDesc.xml`/`gui/GPSMenu.xml`-XML und 39-Datei ZIP mit fehlerfreien CRCs. Echtes Lua-Mock: Diagnoselenkimpuls bei aktivem oder fehlendem `publicBeta`-Flag vor allen Nebenwirkungen abgewiesen. **Noch kein LS25-Ingame-Test v60.**
+- Das herunterladbare ZIP ist **ein Kandidat**, keine für Forbidden Mods autorisierte öffentliche Veröffentlichung; der PR bleibt Draft. Weitere Realtests und die authentischen Ingame-Screenshots abwarten.

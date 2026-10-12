@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <modDesc descVersion="114">
-  <author>TerraLine GPS Project</author>
-  <version>0.9.9.59</version>
+  <author>PatchPunk</author>
+  <version>0.9.9.60</version>
   <title><en>TerraLine GPS</en><de>TerraLine GPS</de></title>
   <iconFilename>icon_terraline.dds</iconFilename>
-  <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Multiplayer development test: farm course synchronization; steering in MP not yet verified.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. MP-Entwicklungstest: Hofkurse synchronisieren; Fahrzeugshop-GPS und Tachoanzeige im Test.</de></description>
+  <description><en>Mod for Farming Simulator 25. Free PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Public PC beta: server-based farm courses; dedicated-server tests with one client passed. Simultaneous multiplayer players not yet tested.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. Kostenlose PC-Beta von PatchPunk: A/B-GPS, Lenkhilfe bis 30 km/h, Hofkurse, Fahrzeugshop-GPS (+10.000 EUR), Nachruestung und Tacho-Status. Dedicated mit einem Client getestet; 2-Spieler-Multiplayer noch ungetestet. Mod fuer Farming Simulator 25.</de></description>
   <multiplayer supported="true" />
   <l10n>
     <text name="input_GPS_FIELD_POWER_TOGGLE"><de>TerraLine GPS Hauptschalter ein/aus</de><en>Toggle TerraLine GPS power</en></text>
