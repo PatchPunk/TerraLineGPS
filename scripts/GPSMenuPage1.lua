@@ -293,7 +293,7 @@ function GPSMenuPage1.draw(screen)
     rounded(screen,.024,.033,.038,.055,P.greenDim)
     if GPSMenuSymbols then GPSMenuSymbols.header(screen,.044,.029) end
     label(screen,.079,.065,"TERRALINE GPS",.045,P.white,true)
-    label(screen,.409,.065,"v0.9.9.43",.022,P.green,false)
+    label(screen,.409,.065,"v"..tostring(GPSConfig.version),.022,P.green,false)
     local src=GPSImplementDetector and GPSImplementDetector.override and "Manuell" or "Auto"
     local name=screen.nativeDeviceName or "Kein Arbeitsgeraet"
     if #name>26 then name=name:sub(1,23).."..." end
@@ -314,7 +314,7 @@ function GPSMenuPage1.draw(screen)
     end
     -- Always-available master switch in the unused sidebar area; this also
     -- remains available in the visual-settings subview when GPS is OFF.
-    local powered=GPSFieldTest and GPSFieldTest.masterEnabled~=false
+    local powered=GPSFieldTest and GPSFieldTest.isMasterEnabled and GPSFieldTest:isMasterEnabled()
     label(screen,.030,.591,"TERRALINE GPS",.020,P.white,true)
     button(screen,.020,.613,.162,.073,powered and "SYSTEM AN" or "SYSTEM AUS","masterToggle",powered)
     label(screen,.038,.730,"Alt+T: ein / aus",.018,P.muted)

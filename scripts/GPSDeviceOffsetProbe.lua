@@ -77,6 +77,6 @@ function GPSDeviceOffsetProbe.update(dt,vehicle)
     local signature=string.format("%s|%s|%s",val and string.format("%.2f",val) or "-",desc or "-",tostring(complete))
     if signature~=self.lastSignature then
         self.lastSignature=signature
-        GPSLogger.info("Geraeteversatz (nur Messung): "..tostring(desc).." | sicher="..tostring(complete))
+        GPSLogger.debug("Geraeteversatz (nur Messung): "..tostring(desc).." | sicher="..tostring(complete))
     end
 end

@@ -1,7 +1,7 @@
--- TerraLine GPS | Interne Projektmarke: Hallo hier bin ich, der CODE! | TL-GPS/2026-10-12
+-- TerraLine GPS | PatchPunk Public Beta | 2026-10-12
 -- TerraLine GPS v0.9.9.23: user-defined A/B only; independent of farmland.
 local GPS_MOD_DIRECTORY = g_currentModDirectory
-GPSFieldTest = {isLoaded=false,masterEnabled=true,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
+GPSFieldTest = {isLoaded=false,masterEnabled=false,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
  keyRegistered=false,keyRetry=0,keyABRegistered=false,keyABRetry=0,keyPressedAB=false,
  keyPressedAssist=false,lastActionAt=-9999,keyboardDiagnosticDone=false}
 
@@ -93,8 +93,12 @@ end
 
 function GPSFieldTest:loadMap()
     self.isLoaded=true
-    -- Master switch defaults to ON for each game session. Never clear A/B or courses on toggle.
-    self.masterEnabled=true
+    -- TerraLine stays OFF until the player explicitly enables it (Alt+T/menu).
+    -- The saved course database is available to the menu even while OFF.
+    self.masterEnabled=false
+    self.powerByFarm={} -- Kept for transition diagnostics.
+    self.powerByVehicle=setmetatable({},{__mode="k"})
+    self.lastPowerVehicle=nil
     self.defaultPowerHotkeyHeld=false
     self.lastPowerToggleAt=-9999
     if GPSCourseManager then GPSCourseManager.reset() end
@@ -108,6 +112,9 @@ function GPSFieldTest:loadMap()
     self.clock=0; self.totalMs=0; self.status="A/B bereit";self.vehicleStatus="-"
     self.currentVehicle=nil
     self.registeredOnce_AB=nil;self.registeredOnce_ASSIST=nil;self.inputRegistrationWarning=nil
+    -- Never carry a previous savegame's unsaved A/B line into a new map.
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then GPSImplementDetector.override=nil end
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Aus")
     -- Optional modules may fail independently; do not block game update/input.
     self.autoMirrorFaulted=false
@@ -128,7 +135,7 @@ function GPSFieldTest:loadMap()
         GPSLogger.info("WARNUNG: Geraeteversatz-Messmodul fehlt")
     end
     self.keyRegistered=false;self.keyABRegistered=false;self.keyRetry=0;self.lastKeyDiagnostic=nil
-    GPSLogger.info("v0.9.8.5 gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
+    GPSLogger.info("v"..tostring(GPSConfig.version).." gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
     self.lastAssistAudioState=false
     self.assistLinesActivatedAtMs=nil
     self:loadActivationBeep()
@@ -141,8 +148,10 @@ function GPSFieldTest:deleteMap()
     if self.deactivationBeepSample~=nil and type(delete)=="function" then pcall(delete,self.deactivationBeepSample) end
     self.deactivationBeepSample=nil;self.lastAssistAudioState=nil;self.assistLinesActivatedAtMs=nil
     if GPSCourseManager then GPSCourseManager.reset() end
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then GPSImplementDetector.override=nil end
     if GPSDisplaySettings then GPSDisplaySettings.reset() end
-    self.isLoaded=false;self.masterEnabled=true;self.currentVehicle=nil;self.shiftHeld=nil
+    self.isLoaded=false;self.masterEnabled=false;self.powerByFarm={};self.powerByVehicle=nil;self.lastPowerVehicle=nil;self.currentVehicle=nil;self.shiftHeld=nil
     self.defaultPowerHotkeyHeld=false
     self.defaultShiftRightHeld=false;self.defaultShiftLeftHeld=false
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Karte verlassen")
@@ -178,7 +187,8 @@ function GPSFieldTest:installNativeHudBridge()
         local vehicle=display and display.vehicle
         local ownVehicle=GPSVehicleDetector.getCurrentVehicle()
         -- Stay strictly inside the controlled vehicle's native speedometer.
-        local bridge=GPSFieldTest.masterEnabled~=false and vehicle~=nil and ownVehicle==vehicle
+        local bridge=GPSFieldTest.masterEnabled==true and vehicle~=nil and ownVehicle==vehicle
+            and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
             and GPSABLineManager.b~=nil
             and type(vehicle.getAIAutomaticSteeringState)=="function"
             and type(vehicle.getAIModeSelection)=="function"
@@ -219,6 +229,15 @@ function GPSFieldTest:installNativeHudBridge()
             display.aiActiveText=oldActiveText
         end
         if not ok then error(err) end
+        -- Equipment indicator stays visible when the hardware is fitted but
+        -- the GPS master is OFF. It is drawn inside this native display only.
+        if vehicle~=nil and ownVehicle==vehicle and GPSTachoStatus then
+            local safe,why=pcall(GPSTachoStatus.draw,display,vehicle)
+            if not safe and not GPSFieldTest.tachoErrorLogged then
+                GPSFieldTest.tachoErrorLogged=true
+                GPSLogger.info("Tacho-Status Fehler: "..tostring(why))
+            end
+        end
     end
     GPSLogger.info("GIANTS Tacho GPS integration ready (native symbol, GPS + lane number)")
 end
@@ -296,10 +315,56 @@ end
 
 -- Master power is separate from Alt+X. The GPS menu stays accessible when powered OFF.
 function GPSFieldTest:isMasterEnabled()
-    return self.masterEnabled~=false
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    return self.masterEnabled==true and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
+end
+-- Keeping a power state PER VEHICLE prevents another tractor from inheriting
+-- GPS ON when the player changes vehicles or farms in a multiplayer game.
+function GPSFieldTest:syncPowerForVehicle(vehicle)
+    -- Workbench changes can remove equipment without switching vehicles.
+    -- Immediately release steering even in this case.
+    if self.lastPowerVehicle==vehicle then
+        if self.masterEnabled and not (GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)) then
+            self.masterEnabled=false
+            GPSSteeringController.stop("TerraLine in Werkstatt ausgebaut")
+        end
+        return
+    end
+    self.lastPowerVehicle=vehicle
+    local enabled=vehicle and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
+        and self.powerByVehicle and self.powerByVehicle[vehicle]==true or false
+    if self.masterEnabled~=enabled then
+        self.masterEnabled=enabled
+        GPSSteeringController.stop("Fahrzeugwechsel: GPS-Lenkung aus")
+        if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("Fahrzeugwechsel") end
+        self.assistLinesActivatedAtMs=nil
+        self.shiftHeld=nil
+    end
+end
+function GPSFieldTest:syncPowerForFarm(farmId)
+    -- A farm change must never copy the power state from another farm.
+    -- The state is restored from the actually controlled vehicle next tick.
+    self.masterEnabled=false
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    if vehicle and self.powerByVehicle then self.powerByVehicle[vehicle]=false end
+    self.lastPowerVehicle=nil
+    GPSSteeringController.stop("Hofwechsel: GPS-Lenkung aus")
+    self.assistLinesActivatedAtMs=nil
+    GPSLogger.info("HAUPTSCHALTER: Hofwechsel zu "..tostring(farmId or "-").." | Fahrzeugausstattung wird geprueft")
 end
 function GPSFieldTest:setMasterEnabled(enabled)
     enabled=enabled==true
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    if not (vehicle and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)) then
+        self.masterEnabled=false
+        GPSSteeringController.stop("TerraLine GPS nicht eingebaut")
+        return "TerraLine GPS: Fahrzeug ohne GPS-Ausstattung (Shop/Werkstatt +10.000 EUR)"
+    end
+    local farmId=GPSCourseManager and GPSCourseManager.getFarmId and GPSCourseManager.getFarmId()
+    if not farmId then return "TerraLine GPS: erst einem Hof beitreten" end
+    self.powerByVehicle=self.powerByVehicle or setmetatable({},{__mode="k"})
+    self.powerByVehicle[vehicle]=enabled
+    self.lastPowerVehicle=vehicle
     if self.masterEnabled==enabled then
         return "TerraLine GPS "..(enabled and "EIN" or "AUS")
     end
@@ -308,20 +373,17 @@ function GPSFieldTest:setMasterEnabled(enabled)
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
     if not enabled then
-        -- Immediately release ALL active steering/diagnostic commands;
-        -- keep A/B, course manager, widths and stored device corrections intact.
         GPSSteeringController.stop("TerraLine Hauptschalter AUS")
         if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("TerraLine GPS AUS") end
         self:syncAssistAudio()
         self.assistLinesActivatedAtMs=nil
         if GPSAutoMirror then GPSAutoMirror.reset() end
     else
-        -- Turning power on NEVER arms steering automatically.
         GPSSteeringController.stop("TerraLine bereit (Lenkung aus)")
         if GPSTrackPosition then GPSTrackPosition.lastUpdate=150 end
         if GPSAutoMirror then GPSAutoMirror.reset() end
     end
-    local msg="TerraLine GPS "..(enabled and "EIN - Lenkung bleibt AUS" or "AUS - Lenkung, Linien und Tacho-Einblendung deaktiviert")
+    local msg="TerraLine GPS "..(enabled and "EIN - Lenkung bleibt AUS" or "AUS")
     GPSLogger.info("HAUPTSCHALTER: "..msg)
     return msg
 end
@@ -370,8 +432,15 @@ function GPSFieldTest:update(dt)
     if not self.isLoaded then return end
     self:installNativeHudBridge()
     self:pollDefaultMenuHotkey()
+    self:syncPowerForVehicle(GPSVehicleDetector.getCurrentVehicle())
     self:pollDefaultPowerHotkey()
-    if GPSCourseManager then GPSCourseManager.ensureLoaded() end
+    if GPSCourseManager then
+        GPSCourseManager.ensureLoaded()
+        if g_server~=nil and GPSCourseManager.installSaveHook then GPSCourseManager.installSaveHook() end
+        -- Required on host and clients, including while TerraLine power is OFF.
+        if GPSCourseManager.watchLocalFarm then GPSCourseManager.watchLocalFarm() end
+        if GPSCourseManager.pollNetwork then GPSCourseManager.pollNetwork(dt) end
+    end
     if GPSMenu and not GPSMenu.registered and (self.totalMs or 0)>=(self.nextMenuRegisterAttempt or 0) then
         self.nextMenuRegisterAttempt=(self.totalMs or 0)+5000
         GPSMenu.register()
@@ -462,6 +531,9 @@ function GPSFieldTest:update(dt)
         end
     end
     GPSTrackPosition.update(dt,GPSVehicleDetector.getCurrentVehicle())
+    if GPSSteeringController.updateNetworkSteering then
+        GPSSteeringController.updateNetworkSteering(dt,GPSVehicleDetector.getCurrentVehicle())
+    end
     self.totalMs=self.totalMs+(dt or 0)
     self.clock=self.clock+(dt or 0)
     if self.clock<GPSConfig.checkIntervalMs then return end
@@ -662,7 +734,7 @@ function GPSFieldTest:commandSteerReport()
     return msg
 end
 function GPSFieldTest:commandAssist()
-    if not self:isMasterEnabled() then return "TerraLine GPS AUS - erst mit Alt+T einschalten" end
+    if not self:isMasterEnabled() then return "TerraLine GPS AUS oder nicht eingebaut" end
     local vehicle=GPSVehicleDetector.getCurrentVehicle()
     -- A/B may have just been completed while stationary. Resolve a valid pass
     -- immediately rather than requiring movement or waiting for the next tick.
@@ -761,7 +833,7 @@ addModEventListener(GPSFieldTest)
 if type(addConsoleCommand)=="function" then
     addConsoleCommand("gsGPSPower","TerraLine GPS Hauptschalter: on/off/toggle","commandMaster",GPSFieldTest)
     addConsoleCommand("gsGPSMenu","GPS Einstellungsmenue oeffnen/schliessen","commandMenu",GPSFieldTest)
-    addConsoleCommand("gsGPSSteerTest","Kurzer Diagnoseimpuls: left/right","commandSteerTest",GPSFieldTest)
+    -- gsGPSSteerTest is intentionally not exposed in the public beta.
     addConsoleCommand("gsGPSSteerReport","Diagnosebericht der Lenkung","commandSteerReport",GPSFieldTest)
     addConsoleCommand("gsGPSAssist","GPS Spurhaltung ein/aus (0-30 km/h, gerade Spuren)","commandAssist",GPSFieldTest)
     addConsoleCommand("gsGPSA","GPS Punkt A am Traktor setzen","commandA",GPSFieldTest)

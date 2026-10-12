@@ -1,44 +1,50 @@
-TerraLine GPS v0.9.9.44 — PC / Singleplayer
+TerraLine GPS v0.9.9.60 – PATCHPUNK PUBLIC BETA (PC)
+Mod fuer Farming Simulator 25 | Entwickler: PatchPunk
 
-A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
+WAS KANN TERRALINE GPS?
+- A/B-GPS-Spurfuehrung mit zwei Positionsmarken (mindestens 20 m Abstand).
+- Lenkunterstuetzung fuer gerade Spuren bis 30 km/h; oberhalb deaktiviert.
+- Eigene GPS-Kurse hofbezogen erstellen, speichern, laden und loeschen.
+- Aktuelle Spur manuell verschieben, um 90 Grad drehen und Arbeitsbreite aendern.
+- Geraeteversatz-Diagnose und einstellbare Linien-Optik.
+- Eigene GPS-Ausstattung fuer geeignete Fahrzeuge: im normalen Fahrzeugshop
+  0 EUR ohne TerraLine (Standard) oder +10.000 EUR mit TerraLine.
+- Nachruestung und Umruestung ueber die originale LS25-Werkstatt moeglich.
+- Kompakte Statusanzeige links neben dem originalen GIANTS-Tacho, mit
+  dunklem, leicht transparentem Hintergrund. Kein Badge ohne GPS-Ausstattung.
 
-Installation:
-- ZIP direkt in den LS25-Modordner kopieren (nicht entpacken).
-- Aeltere TerraLine-GPS-Versionen aus dem Modordner entfernen.
-- Vor Tests ein Backup des Spielstands erstellen.
+INSTALLATION
+1. Backup deines Spielstands anlegen.
+2. Aeltere TerraLine-GPS-ZIP-Dateien und entpackte TerraLine-Ordner
+   aus dem Mods-Verzeichnis entfernen.
+3. Diese ZIP unveraendert in den LS25-Mod-Ordner kopieren, nicht entpacken.
+4. Im Multiplayer dieselbe Version auf Dedicated Server und Clients nutzen.
 
-Tasten (im LS25-Einstellungsmenue aenderbar):
-- Alt+B: A-/B-Punkt setzen; Mindestabstand 20 m
-- Alt+T: Hauptschalter fuer TerraLine GPS ein/aus
-- Alt+X: GPS-Lenkung ein/aus
-- Alt+M: GPS-Menue
-- Alt+R: Spur 90 Grad drehen
-- Alt+Bildauf / Alt+Bildab: komplette Spur um 1 cm verschieben
+BEDIENUNG (belegbar im LS25-Tastenmenue)
+Alt+T             : TerraLine GPS Hauptschalter EIN/AUS
+Alt+B             : Punkt A bzw. B setzen
+Alt+X             : GPS-Lenkunterstuetzung EIN/AUS
+Alt+M             : TerraLine-Menue oeffnen/schliessen
+Alt+R             : Spur um 90 Grad drehen
+Alt+Bildauf/-ab  : GPS-Spur in 1-cm-Schritten verschieben
 
-Entwicklerdiagnose:
-- Auf Menue-Seite 4 ueber das Schloss erreichbar.
-- Feldnummer, Farmland, Koordinaten und Geraeteoffset koennen im Diagnosemenue abgefragt werden.
-- Diagnose-Snapshot schreibt Werte nur auf ausdruecklichen Klick ins Log.
-- OPTION 1 / OPTION 2 sind bewusst noch ohne Funktion.
+WICHTIG ZUR BETA
+- Die Ausruestung wird pro Fahrzeug gekauft/umgeruestet und gespeichert.
+- Der GPS-Hauptschalter startet bewusst AUS, selbst mit gekaufter Ausruestung.
+- Gemeinsame GPS-Kurse gehoeren jeweils zum Hof. Alle Hofmitglieder duerfen
+  sie erstellen, speichern und loeschen. Der Server prueft Hofzugehoerigkeit.
+- Test mit einem Client am Dedicated Server erfolgreich, inklusive Speichern,
+  Werkstatt und Neustart. Zwei gleichzeitige Spieler und Host-MP sind NOCH
+  NICHT bestaetigt; bitte Fehler/Logs mit genauer Reproduktion melden.
+- Experimentelle Fahrgassen-/Feldrandgassen-/Section-Control-Steuerung
+  ist NICHT Teil dieses Mods; ein separates Addon ist geplant.
+- Entwicklermenue auf Seite 4: Diagnose-PIN ist nur ein UI-Gate, keine
+  sichere Zugriffskontrolle. Entwickler-Diagnose ist standardmaessig AUS.
+- gsGPSSteerTest wurde fuer die Public Beta deaktiviert.
+- Keine kostenpflichtigen Downloads / kein offizielles GIANTS-Produkt.
 
-Hinweise zur Veroeffentlichung:
-- Nur PC; multiplayer supported=false. Lua-Skripte schliessen Konsolen-Crossplay aus.
-- Mod-Icon: icon_terraline.dds, 512 x 512, DXT1/BC1, 1 Mipmap-Stufe (keine generierten Mipmaps).
-- Rechte an allen Code-, Bild- und Tonbestandteilen vor einer Veroeffentlichung pruefen.
-- Offizieller GIANTS TestRunner und reale Ingame-Tests stehen noch aus.
-- Keine Freigabe fuer die ModHub-Einreichung ohne diese Tests.
-
-UI v0.9.9.43: freigegebene TerraLine-Pixelgrafiken fuer Kopfzeile, Spurfuehrung, Speicher und Info & Version. Handgezeichnetes Mod-Icon eingebunden.
-
-UI v0.9.9.43: vier +/- Buttons zwischen den Trennern zentriert. Arbeitsbreiten-/Spurfuehrungsvorschau zeigt die freigegebenen Blueprint-Konturen von Traktor und Arbeitsgeraet. Keine Lenk- oder Kursberechnung geaendert.
-
-NEU v0.9.9.43: TerraLine GPS Hauptschalter.
-  Alt+T / LS25 frei belegbare Aktion / SYSTEM AN-AUS im Menue Seite Spurführung.
-  AUS stoppt sofort die automatische Lenkung, blendet GPS-Linien und GPS-Tacho-Integration aus
-  und pausiert automatische Hilfsberechnungen. A/B und gespeicherte Kurse bleiben erhalten.
-  Beim erneuten Einschalten bleibt die GPS-Lenkung bewusst AUS, bis Alt+X gedrueckt wird.
-  Der Hauptschalter startet nach dem Laden eines Spielstands standardmaessig AN.
-  Diagnose-Befehl gsGPSPower [on|off|toggle].
-
-GitHub-/Projektstand v0.9.9.44: nur Kommentare zur internen Projektmarkierung
-und Dokumentation ergaenzt. Keine geaenderte GPS-Funktion.
+KONTAKT UND FEEDBACK
+E-Mail: patchpunk@mail.de
+Das GitHub-Repository ist derzeit privat und kein oeffentlicher Support-Kanal.
+Bugs moeglichst mit LS25-Version, Modversion, Schritten und Client-/Server-Log.
+Bitte melde Fehler, bevor du einen Beta-Spielstand produktiv weiterfuehrst.

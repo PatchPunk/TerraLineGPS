@@ -176,6 +176,12 @@ function GPSMenuScreen:onMenuLayerDraw(element)
 end
 
 function GPSMenuScreen:draw(...)
+    -- Shop/workshop changes or vehicle switches can occur while the screen is
+    -- open. An unequipped vehicle must never retain access to the GPS menu.
+    if self.isOpen and not GPSMenu.isAvailableForCurrentVehicle() then
+        if g_gui and type(g_gui.showGui)=="function" then g_gui:showGui("") end
+        return
+    end
     self.layerDrawn=false
     GPSMenuScreen:superClass().draw(self,...)
     -- Extra safety in case the XML child failed to emit its callback.
@@ -204,7 +210,20 @@ end
 function GPSMenu.isOpen()
     return GPSMenu.screen~=nil and GPSMenu.screen.isOpen==true
 end
+function GPSMenu.isAvailableForCurrentVehicle()
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle and
+        GPSVehicleDetector.getCurrentVehicle()
+    return vehicle~=nil and GPSVehicleEquipment~=nil and
+        type(GPSVehicleEquipment.isInstalled)=="function" and
+        GPSVehicleEquipment.isInstalled(vehicle)==true
+end
 function GPSMenu.toggle()
+    -- This central gate covers the native keybind, keyboard fallback and the
+    -- gsGPSMenu console command. Unpowered but EQUIPPED vehicles may open it.
+    if not GPSMenu.isOpen() and not GPSMenu.isAvailableForCurrentVehicle() then
+        GPSLogger.info("GPS Menue gesperrt: TerraLine GPS fuer dieses Fahrzeug nicht eingebaut")
+        return false
+    end
     if not GPSMenu.register() then
         GPSLogger.info("GPS Menue: GUI noch nicht verfuegbar")
         return false

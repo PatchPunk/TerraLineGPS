@@ -47,7 +47,7 @@ function M.draw(s)
  rect(s,.024,.033,.038,.055,P.greenDim)
  if GPSMenuSymbols then GPSMenuSymbols.header(s,.044,.029) end
  txt(s,.079,.065,"TERRALINE GPS",.045,P.white,true)
- txt(s,.408,.065,"v0.9.9.43",.022,P.green)
+ txt(s,.408,.065,"v"..tostring(GPSConfig.version),.022,P.green)
  txt(s,.079,.106,"ANLEITUNG UND VERSION",.020,P.muted)
  btn(s,.932,.032,.046,.065,"X","close")
  rect(s,.012,.145,.177,.691,P.sidebar)
@@ -81,7 +81,7 @@ function M.draw(s)
  panel(s,.594,.150,.393,.352,"AKTUELLE VERSION")
  local x=.612
  txt(s,x,.280,"TerraLine GPS",.027,P.white,true)
- txt(s,x,.343,"Version 0.9.9.43",.026,P.green,true)
+ txt(s,x,.343,"Version "..tostring(GPSConfig.version),.026,P.green,true)
  txt(s,x,.411,"Datum: 12.10.2026",.021,P.muted)
  panel(s,.594,.514,.393,.322,"HINWEISE / ENTWICKLER")
  txt(s,x,.610,"Linien-Optik: Seite Spurführung",.020,P.white)
@@ -135,13 +135,11 @@ function M.draw(s)
    txt(s,.230,.497,"Geraeteversatz: "..dev.getImplementDiagnostic(vx),.020,P.muted)
    txt(s,.230,.534,"Lenkdiagnose: nur Anzeige, kein aktiver Lenktest",.020,P.yellow)
    btn(s,.230,.584,.320,.072,"SNAPSHOT INS LOG","devlog",true)
-   -- Reserved controls for future developer options. Visual only; no mouse actions.
-   for i,px in ipairs({.568,.765}) do
-    rect(s,px,.584,.178,.072,P.input)
-    rim(s,px,.584,.178,.072,P.dim)
-    txt(s,px+.089,.632,"OPTION "..i,.020,P.muted,true,"center")
-   end
-   txt(s,.230,.690,"Protokollierung erfolgt nur auf Knopfdruck.",.018,P.muted)
+   -- Reuse both existing developer-option buttons; no layout changes.
+   local diagOn=dev.isDiagnosticsEnabled()
+   btn(s,.568,.584,.178,.072,"DIAG EIN","devdiag_on",diagOn)
+   btn(s,.765,.584,.178,.072,"DIAG AUS","devdiag_off",not diagOn)
+   txt(s,.230,.690,"Detailprotokoll: "..(diagOn and "EIN" or "AUS (Standard)"),.018,diagOn and P.green or P.muted)
   end
   txt(s,.230,.764,dev.message or "",.021,P.yellow)
   btn(s,.790,.743,.162,.065,"ZURUECK","devclose")
@@ -156,6 +154,8 @@ function M.onMouseClick(s,px,top)
     if h.action=="developer" then GPSDeveloperMenu.open()
     elseif h.action=="devclose" then GPSDeveloperMenu.close()
     elseif h.action=="devlog" then GPSDeveloperMenu.logSnapshot()
+    elseif h.action=="devdiag_on" then GPSDeveloperMenu.setDiagnosticsEnabled(true)
+    elseif h.action=="devdiag_off" then GPSDeveloperMenu.setDiagnosticsEnabled(false)
     elseif h.action=="close" then s:onClickBack()
     elseif h.action:sub(1,4)=="page" then s.page=tonumber(h.action:sub(5)) or 1 end
     return true

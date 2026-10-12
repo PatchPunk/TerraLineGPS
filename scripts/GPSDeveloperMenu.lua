@@ -106,6 +106,22 @@ function D.detectFieldOnce()
  if GPSLogger and GPSLogger.info then GPSLogger.info("DEV Feldsuche (nur bei Freischaltung): "..result) end
  return result
 end
+-- The detailed logger is a local, session-only developer option.
+-- Unlocking the developer page does NOT activate it; default is OFF.
+function D.isDiagnosticsEnabled()
+ return GPSConfig~=nil and GPSConfig.showDiagnostics==true
+end
+function D.setDiagnosticsEnabled(enabled)
+ if not D.unlocked or GPSConfig==nil then return false end
+ local isOn=enabled==true
+ GPSConfig.showDiagnostics=isOn
+ D.logging=isOn
+ D.message=isOn and "Detaillierte Diagnose EIN" or "Detaillierte Diagnose AUS"
+ if GPSLogger and GPSLogger.info then
+  GPSLogger.info("Entwicklerdiagnose "..(isOn and "EIN" or "AUS"))
+ end
+ return true
+end
 function D.getFieldDiagnostic()
  return D.unlocked and D.fieldDiagnostic or "Diagnose gesperrt"
 end

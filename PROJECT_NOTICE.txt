@@ -1,9 +1,23 @@
-TerraLine GPS - private Entwicklung, Stand 2026-10-12
+TerraLine GPS – PatchPunk Public Beta 0.9.9.60 (12.10.2026)
 
-Dieses Projekt ist fuer die private Nutzung und ein privates GitHub-Repository
-vorbereitet. Mit dieser Kopie wird keine Open-Source-Lizenz erteilt.
-Vor einer Weitergabe muessen Urheber- und Nutzungsrechte fuer Code, Grafiken
-und Sounds ueberprueft werden. Ein Kommentar mit Projektmarkierung ist kein
-technischer Kopierschutz und kein rechtlicher Eigentumsnachweis.
+Mod fuer Farming Simulator 25. Kostenloser PC-Mod von PatchPunk.
 
-Projektstand: TerraLine GPS v0.9.9.44 (aus v0.9.9.43)
+Projekthinweis:
+Die mitgelieferten Grafiken und Sounds wurden nach Auskunft des
+Projektinhabers selbst fuer TerraLine GPS
+angefertigt. Es wurden nach seiner Auskunft keine Grafik- oder
+Sound-Dateien aus anderen Mods uebernommen.
+
+Die oeffentliche Beta wird zum Testen des Mods mit LS25 kostenfrei
+bereitgestellt. Keine Behauptung einer offiziellen GIANTS-Unterstuetzung.
+Der Quellcode der Lua-Dateien ist technisch lesbar. Die Entwickler-PIN
+ist keine kryptografische Sicherheitsfunktion. Der experimentelle
+Konsolen-Lenkimpulstest ist in dieser Public Beta deaktiviert.
+
+Bekannte Grenzen:
+- Dedizierter Server: im Test mit einem Client funktionierend.
+- Simultaner 2-Spieler-Multiplayer und eigenes Host-Spiel noch ungetestet.
+- Originale LS25-Spielstaende vor einem Beta-Test sichern.
+
+Projekt/Entwickler: PatchPunk
+Feedback: GitHub Issues auf PatchPunk/TerraLineGPS oder Downloadseite.
