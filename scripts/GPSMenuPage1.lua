@@ -314,7 +314,7 @@ function GPSMenuPage1.draw(screen)
     end
     -- Always-available master switch in the unused sidebar area; this also
     -- remains available in the visual-settings subview when GPS is OFF.
-    local powered=GPSFieldTest and GPSFieldTest.masterEnabled~=false
+    local powered=GPSFieldTest and GPSFieldTest.isMasterEnabled and GPSFieldTest:isMasterEnabled()
     label(screen,.030,.591,"TERRALINE GPS",.020,P.white,true)
     button(screen,.020,.613,.162,.073,powered and "SYSTEM AN" or "SYSTEM AUS","masterToggle",powered)
     label(screen,.038,.730,"Alt+T: ein / aus",.018,P.muted)

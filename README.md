@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.54** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.55** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_54.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_55.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -158,5 +158,13 @@ Der experimentelle MP-Regler verwendet einen Vorhaltepunkt auf der aktiven A/B-S
 - Syntaxprüfung mit Lua 5.4 aller 25 Skripte, Logger-Debug-Funktionstest, ZIP/XML-Kontrolle erfolgreich. GPS-Spurhaltung bei realen 30 km/h noch nicht bestätigt.
 
 
-### v0.9.9.54 – Diagnose im Entwicklermenü (experimentell)
+### v0.9.9.55 – Diagnose im Entwicklermenü (experimentell)
 Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG EIN** und **DIAG AUS** und schalten die detaillierten Konsolen- und Overlay-Messwerte des lokalen Clients live über `GPSConfig.showDiagnostics`. Standard ist **AUS**. Die Funktion ist ausschließlich im entsperrten Entwicklerbereich verfügbar, schaltet sich nicht automatisch beim Betreten ein und wird nicht als Spieleinstellung dauerhaft gespeichert. Der Snapshot-Knopf bleibt erhalten. **GPS-Lenkung, 30-km/h-Grenze, Hofkurs-Persistenz und Netzwerkcode bleiben bytegenau unverändert.**
+
+
+### v0.9.9.55 – Fahrzeuggebundene GPS-Shopkonfiguration und Tachoindikator
+- Im **nativen GIANTS-Fahrzeugshop**, keine zusätzliche Shop-Seite: Konfigurationsgruppe `TerraLine GPS`, Standard `Ohne TerraLine GPS` (0 €) und `Mit TerraLine GPS` (+10.000 €). Dieselbe Fahrzeugkonfiguration soll in der Werkstatt nachrüstbar sein.
+- Direkter GIANTS-Pfad analog Precision-Farming-Sensoroptionen: `ConfigurationUtil.getConfigurationsFromXML` und `VehicleConfigurationItem`; nur motorisierte Fahrerfahrzeuge passender Kategorien; keine Anhänger/Anbaugeräte.
+- Kaufzustand als Konfiguration `terraLineGPS=2` pro Fahrzeug durch das Spiel gespeichert und synchronisiert. Bestehende Fahrzeuge ohne Kaufhistorie gelten als **nicht ausgerüstet**, keine verdeckten Kosten. GPS-Alt+T ist sonst gesperrt.
+- Normaler Tacho `SpeedMeterDisplay.draw`: **TL GPS AUS** grau, **TL GPS BEREIT** grün, **TL AUTO AKTIV** grün. Ohne Ausstattung keine Anzeige. GPS-Hauptschalter nach Einstieg standardmäßig AUS und bei Wechsel pro Fahrzeug getrennt.
+- Beibehalten: bestätigte 30-km/h-MP-Lenkung, Hofkurse und Server-Persistenz bytegenau unverändert. Lokale Prüfungen: 27 Lua-Dateien syntaktisch, Shoppreis/Eligibility, Tachozustände und Fahrzeugwechsel/Entfernung als Tests; **echter GIANTS-Shop/MP-Test noch offen**. Projekt bleibt experimentell.

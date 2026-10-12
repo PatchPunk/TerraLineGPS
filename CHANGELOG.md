@@ -1,3 +1,11 @@
+## 0.9.9.55 – 12.10.2026 (EXPERIMENTELL / NATIVE SHOP-KONFIGURATION + TACHO)
+- Fahrzeug-Konfigurations-API nach GIANTS Precision-Farming-Vorbild: neue `terraLineGPS`-Option in Standard-Fahrzeugshop und nativer Werkstatt, 0 € AUS (Standard) / 10.000 € EIN. Der Preis wird vom Spiel über `VehicleConfigurationItem.price` verarbeitet, kein manueller Geldabzug.
+- Fahrzeugmerkmale gehen mit GIANTS `vehicle.configurations` in Savegame und Netzwerk, nicht in das TerraLine-Hofkurs-XML. Nichtmotorisierte Geräte ausgeschlossen.
+- Ohne Ausrüstung kein GPS; vorhandene Fahrzeuge standardmäßig ohne neue Ausrüstung und ohne rückwirkende Kosten. Lokales GPS pro Fahrzeug, bei Hofwechsel/Ausbauen automatisch AUS.
+- Dreistufige Statuszeile am vorhandenen SpeedMeterDisplay; ohne Ausstattung keine Anzeige. Kein neuer Shop-Bildschirm.
+- Alle bestehenden 30-km/h-Steuerungs- und Hofkursdateien unverändert; Tests 27 Lua-Syntax, XML/ZIP, Mock-Shop/Anzeige/Fahrzeugwechsel bestanden.
+- **Noch nicht im LS25 selbst bestätigt**: Shopanzeige, Werkstatt-Umbau, Kaufpreis und reale Synchronisierung. Draft-PR nicht mergen.
+
 ## 0.9.9.54 – 12.10.2026 (ENTWICKLERDIAGNOSE EIN/AUS)
 - Die zwei bereits sichtbaren aber bislang funktionslosen Optionsbuttons im Entwicklermenü werden zu `DIAG EIN` und `DIAG AUS` mit funktionierenden Klick-Aktionen und Zustandsmarkierung.
 - Nach Entsperren kann die detaillierte Diagnose per `GPSDeveloperMenu.setDiagnosticsEnabled` lokal aktiviert/deaktiviert werden. Standardwert beim Modstart `GPSConfig.showDiagnostics=false`; der Spielstand speichert diese Option nicht.
