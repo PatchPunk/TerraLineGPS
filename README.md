@@ -1,6 +1,6 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.57** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.58** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
@@ -184,3 +184,11 @@ Die beiden vorhandenen Optionsbuttons der Entwicklerdiagnose heißen nun **DIAG 
 - In `GPSVehicleEquipment.isEligible` zuerst Shop-Kategorie prüfen; ausschließlich geeignete motorisierte Fahrerfahrzeuge lesen Fahrzeug-XML. Verhindert Hunderte XML-Schema-Fehler (`vehicle#type` auf Placeable-Schema) aus v56.
 - 27/27 Lua-Syntaxprüfungen, nativer Speedmeter-/Menü-/Shop-Mock-Laufzeittest und ZIP-CRC/Versionsprüfung bestanden. **Echter LS25-Tacho- und Shoptest noch offen.**
 - Lenkung bis 30 km/h, `SteeringController`, Hofkurs-Persistenz und Multiplayer-Kursprotokoll bytegenau unverändert gegenüber v56.
+
+
+### 0.9.9.58 – kompakte TerraLine-Plakette links neben dem Geschwindigkeitstacho
+- Nach realem Nutzer-Screenshot mit v57 überdeckte der TerraLine-Status die Weizen-/Füllstandsanzeige oberhalb des Tachometers. Nutzer bestätigte eine seitlich angeordnete dunkle Statusplakette mit kleinem GPS-Symbol und den drei bisherigen Zuständen.
+- Nur `GPSTachoStatus.lua` visuell angepasst: neue Plakette (124 × 55 native HUD-Pixel) links neben `SpeedMeterDisplay.speedBg`, zur vertikalen Mitte des Geschwindigkeitsmessers ausgerichtet. Dunkle, kompakte Hinterlegung mit dezentem Statusbalken und nativer `gui.icon_gps`-Grafik; Zustände `AUS`, `BEREIT`, `AUTO AKTIV`, farbcodiert.
+- Dynamische HUD-Pixelskalierung; wenn links kein Platz ist, wird lieber nichts eingeblendet, als den Tacho zu überdecken. Keine Anzeige für Fahrzeuge ohne gekaufte Ausstattung.
+- `GPSFieldTest.lua`, `GPSVehicleEquipment.lua`, Menü, Steuerung, Kursspeicherung und sämtliche übrigen Skripte unverändert gegenüber v57. Einzige weiteren Änderungen sind Modversionsdaten und Dokumentation.
+- Lokaler HUD-Laufzeittest mit gemockter LS25-Schnittstelle: alle drei Zustände, dynamische Position, Nullausstattung und Platzmangel korrekt; alle 27 Lua-Skripte syntaktisch geprüft, ZIP mit 39 Einträgen validiert. **Ingame-Ansicht noch nicht bestätigt.**

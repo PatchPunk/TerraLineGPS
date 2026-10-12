@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.57 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.58 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -126,3 +126,12 @@ v0.9.9.57 - Natives Shop-GPS und Tacho (Hotfix):
 - Shop-XML-Pruefung ignoriert Gebaeude- und andere Nichtfahrzeug-Kategorien vor dem Zugriff auf vehicle XML-Felder.
 - Lenkung, Kurs-Speicherung, MP-Kommunikation und 30-km/h-Grenze unveraendert.
 - Test: V57 muss auf Client und Server installiert sein; Shop und Tacho real pruefen.
+
+
+v0.9.9.58 - Kompakte Tachoplakette (freigegebener Entwurf):
+- Kleiner dunkler TL-GPS-Status LINKS neben dem runden Geschwindigkeitstacho.
+- Kein Text mehr ueber Weizen-/Fuellstandsanzeige oder Tacho!
+- Original GIANTS GPS-Symbol, Status AUS (grau), BEREIT (gruen), AUTO AKTIV (gruen).
+- Native HUD-Skalierung bestimmt Position und Masse; ohne Ausruestung unsichtbar.
+- Shop, 10000-EUR-Konfiguration, Menuesperre, GPS-Lenkung und Farmkurse unveraendert.
+- Lokale Lua-/HUD-Tests bestanden; LS25-Ingame-Darstellung noch pruefen.

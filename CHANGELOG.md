@@ -1,3 +1,10 @@
+## 0.9.9.58 – 12.10.2026 (KOMPAKTE TACHOPLAKETTE – NUTZER FREIGEGEBEN)
+- Screenshot-Test v57: TerraLine-Text überlappt mit Weizen-/Füllstandsbalken und passt nicht zum nativen Tacho. Nutzer hat kompakte dunkle Plakette **links neben dem runden Geschwindigkeitsmesser** genehmigt.
+- Neue `GPSTachoStatus`-Darstellung: kompakte dunkle 124×55 HUD-Pixel-Plakette, native `gui.icon_gps`-Grafik, kleiner farbiger Statusbalken, zwei Textzeilen `TL GPS` und `AUS` (grau) / `BEREIT` (grün) / `AUTO AKTIV` (grün).
+- Position orientiert sich an `SpeedMeterDisplay.speedBg.x` und der **vertikalen Tachomitte**; skaliert mit nativer HUD-Pixelumrechnung. Die Füllstandsanzeige bleibt frei. Bei Platzmangel oder ohne Ausstattung wird nichts gezeichnet.
+- 27 Lua-Syntaxprüfungen, Lua-Mock-Laufzeittest für Anzeige in allen drei Zuständen, Abstände, Ausrüstungsfilter und Platzmangel erfolgreich. ZIP unverändert 39 Dateien. Noch kein LS25-Ingame-Beweis.
+- Alle Shop-, Menü-, Steering-, CourseManager-, FarmCourseEvent- und GPSFieldTest-Skripte bytegenau unverändert gegenüber v57. Draft-PR bleibt offen.
+
 ## 0.9.9.57 – 12.10.2026 (SHOP-XML-FIX + MENÜ-SPERRE + NATIVER FS25-TACHO)
 - Logs v56: Server und Client melden unerlaubte XML-Schema-Zugriffe `vehicle#type` bei `data/placeables/...`: Shop-Eligibility prüft Kategorie jetzt VOR XML-Zugriff.
 - Ein Fahrzeug ohne gekaufte TerraLine-Ausstattung kann das Menü nicht mehr über Alt+M (native und Fallback), Konsolenbefehl oder anderen `GPSMenu.toggle`-Aufruf öffnen. Offenes Menü schließt bei Fahrzeugwechsel oder Ausbau automatisch.
