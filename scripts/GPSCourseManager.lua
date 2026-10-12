@@ -3,6 +3,7 @@
 GPSCourseManager={courses={},fieldNames={},loadedPath=nil,nextId=1,activeCourseName=nil,clientFarmId=nil,pollTime=0,observedFarmId=nil,pendingSave=nil,lastServerMessage=nil,cachedCoursesByFarm={},awaitingFarmSnapshot=nil}
 local M=GPSCourseManager
 local function log(s) if GPSLogger and GPSLogger.info then GPSLogger.info("TerraLine Kurse: "..tostring(s)) end end
+local function debug(s) if GPSLogger and GPSLogger.debug then GPSLogger.debug("TerraLine Kurse: "..tostring(s)) end end
 local function directory()
     local mission=g_currentMission
     local info=mission and mission.missionInfo
@@ -267,7 +268,7 @@ function M.receiveSnapshot(payload)
     M.courses=list
     M.clientFarmId=payload.farmId
     M.awaitingFarmSnapshot=nil
-    log(string.format("Hof %d: %d Kurse vom Server empfangen und zwischengespeichert",payload.farmId,#list))
+    debug(string.format("Hof %d: %d Kurse vom Server empfangen und zwischengespeichert",payload.farmId,#list))
 end
 -- The client displays a saved name ONLY after the authoritative server has
 -- confirmed writing valid A/B coordinates. A sent request is not a save.
@@ -346,7 +347,7 @@ function M.handleClientRequest(connection,operation,payload)
     elseif operation~=GPSFarmCourseEvent.REQUEST then
         return
     else
-        log("MP REQUEST Hof "..tostring(farmId)..": "..tostring(#matchingCourses(farmId)).." Kurse an Client")
+        debug("MP REQUEST Hof "..tostring(farmId)..": "..tostring(#matchingCourses(farmId)).." Kurse an Client")
     end
     GPSFarmCourseEvent.sendSnapshot(connection,farmId,matchingCourses(farmId))
 end

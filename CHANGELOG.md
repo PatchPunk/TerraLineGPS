@@ -1,3 +1,10 @@
+## 0.9.9.53 – 12.10.2026 (MP 30 KM/H + LOG-BEREINIGUNG)
+- GPS-Lenkung SP/MP: einheitliche Geschwindigkeitsgrenze 30 km/h für Aktivieren und Sicherheitsabschaltung; bisherige 18-km/h-MP-Testbegrenzung entfernt.
+- Sichtbare Konsolenkennung `[TerraLine GPS]` statt `[GPSFieldTest]`. Interne Klassen, GIANTS-InputActions und Dateipfade absichtlich unverändert.
+- `GPSLogger.debug` für regelmäßig wiederkehrende Telemetrie; nur aktiv, wenn `GPSConfig.showDiagnostics=true`. Wichtiges Status- und Fehlerlogging bleibt in `GPSLogger.info`.
+- SP/MP-Kursdatenpersistenz, Events und bestätigte v52-MP-Lenkrichtung nicht verändert.
+- 25 Lua-Syntaxprüfungen bestanden; geprüft, dass GPSFarmCourseEvent.lua, GPSFieldTest.lua, A/B und TrackPosition bytegenau identisch zu v52 sind. Noch kein Fahrtest bei 30 km/h.
+
 ## 0.9.9.52 – 12.10.2026 (EXPERIMENTELL / MP LENKRICHTUNG)
 - V51-Dedicated-Client-Logs: `GPS-LENK MP-CLIENT` aktiv, danach mehrfach `Abweichung zu gross`; bestätigte Nutzerbeobachtung: Steuerung lenkt in die falsche Richtung.
 - Korrektur: Logischer Korrekturwert bleibt unverändert, aber vor `vehicle:setSteeringInput` wird das Vorzeichen ausschließlich für den MP-Drivable-Eingang umgekehrt. Die bisherige physische Achsenannahme aus dem alten Physics-Hook war auf dem nativen Drivable-Eingang offenbar nicht passend.

@@ -1,4 +1,4 @@
-TerraLine GPS v0.9.9.52 — PC / Multiplayer-Entwicklungstest
+TerraLine GPS v0.9.9.53 — PC / Multiplayer-Entwicklungstest
 
 A/B-GPS-Spurfuehrung mit gespeicherten Kursen, Lenkassistent, Spurversatz und individuell einstellbarer Linien-Optik.
 
@@ -88,3 +88,12 @@ v0.9.9.52 - experimenteller MP-Lenkrichtungstest:
 - Test ausschliesslich bei niedriger Geschwindigkeit auf freiem Feld.
 - Kurs-Speicherung (serverseitig) unveraendert wie v0.9.9.50/v51.
 - Keine MP-Freigabe vor einem erfolgreichen echten Fahrtest.
+
+
+v0.9.9.53 - MP 30 km/h + ruhiges Konsolenprotokoll:
+- MP-Spurhaltung ist bis 30 km/h aktivierbar und schaltet oberhalb von 30 km/h ab; Richtungsregelung aus v0.9.9.52 bleibt unveraendert.
+- Laufende Messwerte (Lenkwert, Trend, Spurabweichung, Geraetespur, wiederholte Kurs-Polls) sind standardmaessig stumm.
+- Bei GPSConfig.showDiagnostics=true erscheinen diese Meldungen als [TerraLine GPS] DIAG ...
+- GPS EIN/AUS, Sicherheitsstopps, Save/Load und Fehler bleiben im normalen Log.
+- Neuer Log-Praefix [TerraLine GPS] statt [GPSFieldTest].
+- Server-Kursspeicherung und Sync unveraendert.

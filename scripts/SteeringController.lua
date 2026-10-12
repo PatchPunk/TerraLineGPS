@@ -2,8 +2,10 @@
 -- Steering axis verified with v0.9.2: negative = left, positive = right.
 GPSSteeringController={enabled=false,vehicle=nil,reason="Aus",lastValue=0,lastCross=0,lockedTrack=nil,hookInstalled=false,logClock=0,guardStart=nil,guardClock=0,waitingForMotion=false,networkSteeringValue=nil,injectingInput=false}
 local C=GPSSteeringController
+C.maxAssistSpeedKmh=30 -- Shared SP/MP speed limit (km/h).
 local function clamp(v,lo,hi) return math.max(lo,math.min(hi,v)) end
 local function log(msg) if GPSLogger then GPSLogger.info("GPS-LENK "..msg) end end
+local function debug(msg) if GPSLogger and GPSLogger.debug then GPSLogger.debug("GPS-LENK "..msg) end end
 function C.stop(reason)
     if C.enabled then log("AUS: "..tostring(reason)) end
     C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false
@@ -18,7 +20,7 @@ function C.toggle(vehicle)
     end
     if not C.install(vehicle) then return "GPS: Lenk-Hook nicht verfuegbar" end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>(g_client~=nil and g_server==nil and 18 or 30) then return "GPS: Aktivierung nur bis 18 km/h im Multiplayer" end
+    if speed>C.maxAssistSpeedKmh then return "GPS: Aktivierung nur bis "..tostring(C.maxAssistSpeedKmh).." km/h" end
     C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.networkPathLogged=false
     C.reason="Aktiv | Spur "..tostring(C.lockedTrack)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
@@ -84,7 +86,7 @@ function C.compute(vehicle,dt,mpMode)
     C.guardClock=C.guardClock+(dt or 0)
     if C.guardClock>=(mpMode and 3000 or 2200) then
         local growth=math.abs(offset)-C.guardStart
-        log(string.format("Trend: absStart=%.3f absNow=%.3f delta=%+.3f heading=%.3f cmd=%.3f",C.guardStart,math.abs(offset),growth,heading,command))
+        debug(string.format("Trend: absStart=%.3f absNow=%.3f delta=%+.3f heading=%.3f cmd=%.3f",C.guardStart,math.abs(offset),growth,heading,command))
         if growth>(mpMode and 0.38 or 0.24) and math.abs(command)>0.04 then
             C.stop("Sicherheitsstopp: Spurabweichung waechst"); return nil
         end
@@ -95,7 +97,7 @@ function C.compute(vehicle,dt,mpMode)
     C.logClock=C.logClock+(dt or 0)
     if C.logClock>=1600 then
         C.logClock=0
-        log(string.format("Spur=%d, speed=%.1f, offset=%.2f, heading=%.3f, steer=%.3f",C.lockedTrack,speed,offset,heading,command))
+        debug(string.format("Spur=%d, speed=%.1f, offset=%.2f, heading=%.3f, steer=%.3f",C.lockedTrack,speed,offset,heading,command))
     end
     return command
 end
@@ -110,8 +112,8 @@ function C.install(vehicle)
         if C.enabled and self==C.vehicle and not (GPSSteeringDiagnostics and GPSSteeringDiagnostics.active) then
             local speed=type(self.getLastSpeed)=="function" and math.abs(self:getLastSpeed()) or 0
             -- axisSide is raw player steering from game before applying our command.
-            if speed>30 then
-                C.stop("Geschwindigkeit ueber 30 km/h")
+            if speed>C.maxAssistSpeedKmh then
+                C.stop("Geschwindigkeit ueber "..tostring(C.maxAssistSpeedKmh).." km/h")
             elseif speed<2 then
                 -- Paused at standstill (also while parked with handbrake):
                 -- GPS stays ON, but NEVER sends steering corrections while stopped.
@@ -183,7 +185,7 @@ function C.updateNetworkSteering(dt,vehicle)
         C.stop("MP: Drivable-Lenkeingang nicht verfuegbar");return
     end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>18 then C.stop("MP-Test: GPS maximal 18 km/h (Stabilisierung)");return end
+    if speed>C.maxAssistSpeedKmh then C.stop("GPS maximal "..tostring(C.maxAssistSpeedKmh).." km/h");return end
     if spec.doHandbrake and speed>=2 then C.stop("MP: Handbremse");return end
     if speed<2 then
         if not C.waitingForMotion then
@@ -214,10 +216,10 @@ function C.updateNetworkSteering(dt,vehicle)
     C.nativeLogClock=(C.nativeLogClock or 0)+(dt or 0)
     if C.nativeLogClock>=1500 then
         C.nativeLogClock=0
-        log(string.format("MP INPUT: offset=%+.2fm logisch=%+.3f an Drivable=%+.3f",C.lastCross or 0,value,nativeInput))
+        debug(string.format("MP INPUT: offset=%+.2fm logisch=%+.3f an Drivable=%+.3f",C.lastCross or 0,value,nativeInput))
     end
     if not C.networkPathLogged then
         C.networkPathLogged=true
-        log("MP-CLIENT: normaler Lenkeingang aktiv (Lenkrad + Fahrzeug), Vorhaltepunkt, max 18 km/h, v0.9.9.52")
+        log("MP-CLIENT: normaler Lenkeingang aktiv (Lenkrad + Fahrzeug), Vorhaltepunkt, max "..tostring(C.maxAssistSpeedKmh).." km/h, v"..tostring(GPSConfig and GPSConfig.version or "?"))
     end
 end

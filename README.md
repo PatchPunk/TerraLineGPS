@@ -1,12 +1,12 @@
 # TerraLine GPS – Farming Simulator 25
 
-**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.52** (12.10.2026); noch kein freigegebenes v1.0.
+**Status:** private Multiplayer-Entwicklungsfassung **0.9.9.53** (12.10.2026); noch kein freigegebenes v1.0.
 
 TerraLine GPS ergänzt A/B-Spurführung, gespeicherte Kurse, Lenkassistent,
 manuellen Spurversatz, automatische Geräteversatz-Korrektur,
 einstellbare Linienoptik und eine passwortgeschützte Entwicklerdiagnose.
 Die Hauptfunktion wurde in **0.9.9.43** im Spiel getestet und bestätigt;
-**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.52** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
+**0.9.9.44** war der dokumentierte stabile Ausgangsstand. **0.9.9.53** erweitert die serverseitige Hofkurs-Verwaltung und schaltet MP ausschließlich für Entwicklungstests frei.
 
 ## Installation für LS25
 
@@ -16,7 +16,7 @@ Aus den Quellen eine Spiele-ZIP erstellen:
 python tools/build_mod.py
 ```
 
-Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_52.zip` direkt in den
+Das Ergebnis `dist/FS25_TerraLineGPS_v0_9_9_53.zip` direkt in den
 FS25-Modordner kopieren, **nicht** entpacken. Ältere TerraLine-GPS-ZIPs vorher
 aus dem Modordner entfernen. Vor Tests Spielstand sichern.
 
@@ -116,7 +116,7 @@ Siehe `docs/MP_TESTPLAN.md`.
 - Sicherheitsregel: Vor dem Test Savegame sichern. Kursdaten aus v0.9.9.46 nur erhalten, falls deren `terralineGPS.xml` im Original-Savegame noch existiert. Nicht automatisch rekonstruierbar.
 - Shop-Option (+10.000 EUR) weiterhin separat vorgesehen, NICHT eingebaut.
 
-## MP-Test v0.9.9.52 (Hofwechsel / Version)
+## MP-Test v0.9.9.53 (Hofwechsel / Version)
 - Korrigiert: Beim Wechsel zwischen Hoefen wird die empfangene Kursliste nicht mehr unwiderruflich geleert.
 - Pro Farm wird **nur ein zuvor vom Server bestaetigter Snapshot** lokal zwischengespeichert.
 - Auf jedem Hofwechsel fordert der Client weiterhin einen frischen, verbindlichen Snapshot an; der Server ist autoritativ und darf den Cache ersetzen (auch leeren).
@@ -127,24 +127,32 @@ Siehe `docs/MP_TESTPLAN.md`.
 - Mehr Diagnose zum Kurslisten-Request im Server- und Client-Log.
 
 
-### Version 0.9.9.52 – MP-Testhinweise
+### Version 0.9.9.53 – MP-Testhinweise
 - Der REQUEST-Event wird im ReadStream jetzt angenommen; beim Beitritt und Hofwechsel werden Hofkurse ohne vorherige Speicheraktion geladen.
 - Der Server hält den Original-Spielstandpfad über temporäre GIANTS-Save-Verzeichnisse hinweg stabil; gespeicherte Kurse werden nicht mehr durch einen leeren tempsavegame-Snapshot überschrieben.
 - Experimenteller Client-Eingabepfad für GPS-Lenkung nutzt Drivable.axisSide und GIANTS dirtyFlags statt ausschließlich eines serverseitigen Physik-Hooks. Manueller Lenkeingriff deaktiviert die Lenkung.
 - Die Multiplayer-Lenkung ist **noch nicht ingame bestätigt**, daher keine Freigabe für produktive Server oder v1.0.
 
 
-### 0.9.9.52 – MP-Testfix
+### 0.9.9.53 – MP-Testfix
 - Vorsichtige **MP-spezifische** Lenkverstärkung mit maximal 0,075 Lenkwert und Sicherheitsabschaltung über 18 km/h; Singleplayer-Regler nicht geändert.
 - Die serverseitigen Hofkurse werden bei `ItemSystem.save` direkt in den von GIANTS verwendeten Speicher-Snapshot (ggf. `tempsavegame`) geschrieben, damit sie beim Übernehmen des Spielstands nicht verschwinden.
 - Serverlog `SERVER-SAVE-TEMP` zeigt Pfad und Kursanzahl. Ein echter G-Portal-Speicher- und Neustarttest ist noch erforderlich.
 
 
-### v0.9.9.52 – MPUnd Lenkrad-Synchronisierung (experimentell)
+### v0.9.9.53 – MPUnd Lenkrad-Synchronisierung (experimentell)
 Der experimentelle MP-Regler verwendet einen Vorhaltepunkt auf der aktiven A/B-Spur und übergibt das Lenksignal über die normale Fahrzeugfunktion `setSteeringInput`, statt den internen Wert `spec_drivable.axisSide` direkt zu überschreiben. Das soll die im Spiel sichtbare Lenkbewegung mit der Spurhaltung koppeln. Korrekturrichtung ist anhand der A/B-Geometrie links/rechts/reversiert simuliert, manuelle Übersteuerung stoppt GPS. MP-Tempolimit 18 km/h, Sicherheitsausschaltung und Singleplayer-Regler bleiben. Der echte Lenkrad- und MP-Fahrtest steht noch aus. Die serverseitige Hofkurs-Speicherung aus v0.9.9.50 ist unverändert.
 
 
-### 0.9.9.52 – MP-Lenkrichtungstest
+### 0.9.9.53 – MP-Lenkrichtungstest
 - Nach dem realen v51-Fahrtest (Traktor lenkt von der Linie weg, Abbruch mit 'Abweichung zu gross') wird das **Vorzeichen ausschließlich am normalen MP-Lenkeingang** umgekehrt; die Vorhaltepunkt-Geometrie, Singleplayer-Lenkung und funktionierende MP-Kursspeicherung bleiben unverändert.
 - Client-Log etwa alle 1,5 Sekunden: `GPS-LENK MP INPUT` mit Spurabweichung, logischem und nativem Lenksignal.
 - **Noch kein erfolgreicher Ingame-Lenktest**. Version nur vorsichtig bei 5–8 km/h auf freiem Feld testen; nicht nach `main` übernehmen.
+
+
+### v0.9.9.53 – MP 30 km/h, bereinigte Logs
+- SP und MP jetzt maximal 30 km/h (Prüfung bei Einschalten und während der Fahrt). Funktionierende v52-Lenkrichtung und A/B-Regelung unverändert.
+- Log-Präfix `[TerraLine GPS]` statt `[GPSFieldTest]`; interner Lua-Listenername `GPSFieldTest` bleibt aus Kompatibilitätsgründen erhalten.
+- Laufende Telemetrie (GPS-LENK Spur/Trend/MP INPUT, Geräteversatz-Messwerte, regelmäßige Kurs-REQUEST/SNAPSHOT-Meldungen) läuft über `GPSLogger.debug`, standardmäßig deaktiviert (`GPSConfig.showDiagnostics=false`). Ereignisse, Fehler und Speichern/Laden bleiben sichtbar. Debug-Meldungen erscheinen mit `DIAG`.
+- Kursspeicherung und Netzwerkprotokoll unverändert bis auf die Logausgabe.
+- Syntaxprüfung mit Lua 5.4 aller 25 Skripte, Logger-Debug-Funktionstest, ZIP/XML-Kontrolle erfolgreich. GPS-Spurhaltung bei realen 30 km/h noch nicht bestätigt.
