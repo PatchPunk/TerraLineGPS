@@ -3,6 +3,13 @@
 GPSSteeringController={enabled=false,vehicle=nil,reason="Aus",lastValue=0,lastCross=0,lockedTrack=nil,hookInstalled=false,logClock=0,guardStart=nil,guardClock=0,waitingForMotion=false,networkSteeringValue=nil,injectingInput=false}
 local C=GPSSteeringController
 C.maxAssistSpeedKmh=30 -- Shared SP/MP speed limit (km/h).
+-- Conservative, SP-only initial capture envelope; the 30 km/h hold limit stays unchanged.
+C.captureMaxSpeedKmh=12
+C.captureMaxHeading=math.rad(25)
+C.captureMaxTimeMs=18000
+local function holdOffsetLimit(width) return math.min(1.2,width*0.42) end
+local function captureOffsetLimit(width) return math.min(2.5,width*0.48) end
+local function isMultiplayerClient() return g_client~=nil and g_server==nil end
 local function clamp(v,lo,hi) return math.max(lo,math.min(hi,v)) end
 local function log(msg) if GPSLogger then GPSLogger.info("GPS-LENK "..msg) end end
 local function debug(msg) if GPSLogger and GPSLogger.debug then GPSLogger.debug("GPS-LENK "..msg) end end
@@ -48,8 +55,12 @@ local function captureActivationGeometry(vehicle,track)
         d.headingDeg=math.deg(math.atan2(vx*tz-vz*tx,vx*tx+vz*tz))
         d.dir=dir
         d.width=GPSImplementDetector.getWidth(vehicle)
-        if d.width and d.width>=0.5 then
-            d.offset=(x-a.x)*(-uz)+(z-a.z)*ux-track*d.width
+        if type(d.width)=="number" and d.width>=0.5 then
+            local live=(x-a.x)*(-uz)+(z-a.z)*ux
+            -- TrackPosition uses precisely the same nearest-lane rule. Re-read
+            -- it now to avoid locking a lane from its 150 ms update cache.
+            d.track=math.floor(live/d.width+0.5)
+            d.offset=live-d.track*d.width
         end
     end)
     if not ok then d.phase="Messung fehlgeschlagen: "..tostring(err) end
@@ -60,7 +71,7 @@ function C.stop(reason)
         log("AUS: "..tostring(reason))
         logDiagnostic("STOP grund="..tostring(reason).." | "..diagContext())
     end
-    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.diagInfo=nil;C.diagRawAxis=nil;C.diagNativeRawAxis=nil;C.diagClock=0;C.diagElapsed=0
+    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.diagInfo=nil;C.diagRawAxis=nil;C.diagNativeRawAxis=nil;C.diagClock=0;C.diagElapsed=0;C.captureMode=false;C.captureElapsed=0;C.captureStable=0
 end
 local function rejectActivation(message)
     logDiagnostic("START ABGELEHNT: "..message)
@@ -74,13 +85,41 @@ function C.toggle(vehicle)
     if not GPSABLineManager.a or not GPSABLineManager.b or not GPSTrackPosition.valid or GPSTrackPosition.track==nil then
         return rejectActivation("GPS: A/B und gueltige Spur erforderlich")
     end
-    if not C.install(vehicle) then return rejectActivation("GPS: Lenk-Hook nicht verfuegbar") end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>C.maxAssistSpeedKmh then return rejectActivation("GPS: Aktivierung nur bis "..tostring(C.maxAssistSpeedKmh).." km/h") end
-    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.networkPathLogged=false
-    C.diagInfo=captureActivationGeometry(vehicle,C.lockedTrack)
+    local geometry=captureActivationGeometry(vehicle,GPSTrackPosition.track)
+    if type(geometry.offset)~="number" or type(geometry.headingDeg)~="number"
+        or type(geometry.width)~="number" or type(geometry.track)~="number" then
+        return rejectActivation("GPS: Fahrzeugposition oder Spur noch nicht messbar ("..tostring(geometry.phase)..")")
+    end
+    local off=math.abs(geometry.offset)
+    local headingAbs=math.abs(math.rad(geometry.headingDeg))
+    local normal=off<=holdOffsetLimit(geometry.width) and headingAbs<=0.35
+    local acquiring=not normal
+    if acquiring then
+        -- Experimental capture must not alter the currently tested MP steering path.
+        if isMultiplayerClient() then
+            return rejectActivation("GPS: Im MP erst auf Spur ausrichten (max 1,20 m / 20 Grad)")
+        end
+        if off>captureOffsetLimit(geometry.width) then
+            return rejectActivation(string.format("GPS: Zu weit von Spur entfernt (%.2f m, max %.2f m)",off,captureOffsetLimit(geometry.width)))
+        end
+        if headingAbs>C.captureMaxHeading then
+            return rejectActivation(string.format("GPS: Kurswinkel %.1f Grad zu gross (max 25 Grad)",math.deg(headingAbs)))
+        end
+        if speed>C.captureMaxSpeedKmh then
+            return rejectActivation("GPS: Spurerfassung nur bis "..tostring(C.captureMaxSpeedKmh).." km/h")
+        end
+    end
+    if not C.install(vehicle) then return rejectActivation("GPS: Lenk-Hook nicht verfuegbar") end
+    C.vehicle=vehicle;C.enabled=true;C.lockedTrack=geometry.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.networkPathLogged=false
+    C.captureMode=acquiring;C.captureElapsed=0;C.captureStable=0
+    C.diagInfo=geometry
     C.diagRawAxis=nil;C.diagNativeRawAxis=nil;C.diagClock=0;C.diagElapsed=0
     logDiagnostic("START | "..diagContext())
+    if acquiring then
+        log(string.format("SPURERFASSUNG START: Spur %d | %.2f m | %.1f Grad | %.1f km/h",C.lockedTrack,geometry.offset,geometry.headingDeg,speed))
+    end
     C.reason="Aktiv | Spur "..tostring(C.lockedTrack)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
     return "GPS Lenkung EIN | Spur "..tostring(C.lockedTrack)
@@ -112,17 +151,40 @@ function C.compute(vehicle,dt,mpMode)
     info.phase="Kurswinkelpruefung";info.dir=dir;info.headingDeg=math.deg(heading)
     info.speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     info.offset=nil;info.width=nil;info.desired=nil;info.command=nil
-    if math.abs(heading)>0.35 then C.stop("Winkel groesser 20 Grad");return nil end
+    local capture=C.captureMode==true
+    if math.abs(heading)>(capture and C.captureMaxHeading or 0.35) then
+        C.stop(capture and "Spurerfassung: Winkel zu gross" or "Winkel groesser 20 Grad");return nil
+    end
     local width=GPSImplementDetector.getWidth(vehicle)
     if not width or width<0.5 then C.stop("Arbeitsbreite fehlt");return nil end
     local nx,nz=-uz,ux
     local offset=(x-a.x)*nx+(z-a.z)*nz-C.lockedTrack*width
     info.phase="Spurabweichungspruefung";info.width=width;info.offset=offset
-    if math.abs(offset)>math.min(1.2,width*0.42) then C.stop("Abweichung zu gross");return nil end
+    if math.abs(offset)>(capture and captureOffsetLimit(width) or holdOffsetLimit(width)) then
+        C.stop(capture and "Spurerfassung: Abweichung zu gross" or "Abweichung zu gross");return nil
+    end
     -- Unbounded A/B guidance: no field-edge stop and no segment list.
     -- Empirical v0.9.3 logs: signed offset and heading ran AWAY from zero.
     -- Reverse BOTH feedback terms; check actual offset decrease in the safety watchdog.
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 5
+    if capture then
+        if speed>C.captureMaxSpeedKmh then C.stop("Spurerfassung: Ueber 12 km/h");return nil end
+        C.captureElapsed=(C.captureElapsed or 0)+(dt or 0)
+        if C.captureElapsed>C.captureMaxTimeMs then C.stop("Spurerfassung: Zeitlimit");return nil end
+        -- Hand over only after 0.8 s consistently near the line. Thereafter,
+        -- the original steering limits and feedback remain *identical*.
+        if math.abs(offset)<=0.25 and math.abs(heading)<=math.rad(5) then
+            C.captureStable=(C.captureStable or 0)+(dt or 0)
+            if C.captureStable>=800 then
+                C.captureMode=false
+                C.captureStable=0
+                C.guardStart=nil;C.guardClock=0
+                log(string.format("SPURERFASSUNG FERTIG: Spur %d | %.2f m | %.1f Grad",C.lockedTrack,offset,math.deg(heading)))
+            end
+        else
+            C.captureStable=0
+        end
+    end
     -- SP controller is unchanged. MP uses a forward-look target ON THE CURRENT
     -- TRACK rather than signed feedback into the server physics axis. The
     -- steering input sign was verified: positive=RIGHT, negative=LEFT.
@@ -145,7 +207,7 @@ function C.compute(vehicle,dt,mpMode)
     end
     -- Rate limit to avoid abrupt wheel movements. dt is milliseconds.
     local command=C.lastValue+clamp(desired-C.lastValue,-maxDelta,maxDelta)
-    info.phase=mpMode and "MP-Regelung" or "SP-Regelung"
+    info.phase=capture and "SP-Spurerfassung" or (mpMode and "MP-Regelung" or "SP-Regelung")
     info.speed=speed;info.desired=desired;info.command=command
     -- Early trend watchdog: prevents extended wrong-way correction if sign still wrong.
     -- Observe absolute lateral error over a moving 2.2-second window.
@@ -189,6 +251,8 @@ function C.install(vehicle)
             C.diagRawAxis=type(axisSide)=="number" and axisSide or nil
             if speed>C.maxAssistSpeedKmh then
                 C.stop("Geschwindigkeit ueber "..tostring(C.maxAssistSpeedKmh).." km/h")
+            elseif C.captureMode and speed>C.captureMaxSpeedKmh then
+                C.stop("Spurerfassung: Ueber 12 km/h")
             elseif speed<2 then
                 -- Paused at standstill (also while parked with handbrake):
                 -- GPS stays ON, but NEVER sends steering corrections while stopped.
