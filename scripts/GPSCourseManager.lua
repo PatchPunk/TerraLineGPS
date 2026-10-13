@@ -422,6 +422,43 @@ function M.rotateStep(deltaDegrees,quiet)
     end
     return M.setAngle(angle+deltaDegrees,quiet)
 end
+-- Fine rotation around the CURRENT tractor center, not point A.
+function M.rotateAroundVehicle(deltaDegrees,quiet)
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    if not vehicle then return false,"Kein Traktor ausgewaehlt" end
+    local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+    if speed>2 then return false,"Spurwinkel nur im Stillstand aendern" end
+    local delta=tonumber(deltaDegrees)
+    if not delta or delta~=delta or math.abs(delta)>5 then return false,"Ungueltiger Drehschritt" end
+    local a,b=hasAB()
+    if not a then return false,"Zuerst A und B setzen" end
+    local node=GPSVehicleDetector.getPositionNode(vehicle)
+    if not node or type(getWorldTranslation)~="function" then
+        return false,"Traktormitte nicht verfuegbar"
+    end
+    local x,_,z=getWorldTranslation(node)
+    if type(x)~="number" or type(z)~="number" or x~=x or z~=z then
+        return false,"Traktormitte ungueltig"
+    end
+    local r=math.rad(delta)
+    local sn,cs=math.sin(r),math.cos(r)
+    local function rotated(p)
+        local dx,dz=p.x-x,p.z-z
+        return {x=x+dx*cs+dz*sn,z=z-dx*sn+dz*cs}
+    end
+    local ra,rb=rotated(a),rotated(b)
+    refresh()
+    if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled and type(GPSDeviceOffsetAuto.setEnabled)=="function" then
+        GPSDeviceOffsetAuto.setEnabled(false)
+    end
+    GPSABLineManager.a=ra
+    GPSABLineManager.b=rb
+    M.activeCourseName=nil
+    local angle=(math.deg(math.atan2(rb.x-ra.x,rb.z-ra.z))+360)%360
+    if not quiet then log(string.format("Feindrehung %.2f Grad | Kurs %.2f Grad | Traktormitte %.2f / %.2f",delta,angle,x,z)) end
+    return true,string.format("Spurwinkel %.2f Grad (Traktormitte als Drehpunkt)",angle)
+end
+
 function M.rotate90()
     return M.rotateStep(90)
 end

@@ -13,9 +13,10 @@
     <text name="input_GPS_FIELD_SHIFT_RIGHT"><de>GPS-Spur samt Arbeitsgrenzen rechts verschieben</de><en>Shift GPS A/B line right</en></text>
     <text name="input_GPS_FIELD_SHIFT_LEFT"><de>GPS-Spur samt Arbeitsgrenzen links verschieben</de><en>Shift GPS A/B line left</en></text>
     <text name="input_GPS_FIELD_MENU_TOGGLE"><de>GPS Einstellungsmenue oeffnen/schliessen</de><en>Open/close GPS settings menu</en></text>
+    <text name="input_GPS_FIELD_ROTATE_MODE"><de>TerraLine GPS Spurwinkelmodus umschalten (Rechts-Alt + W)</de><en>Toggle fine angle mode (Right Alt + W)</en></text>
     <text name="input_GPS_FIELD_ROTATE_90"><de>TerraLine GPS Spur 90 Grad drehen</de><en>TerraLine GPS rotate lane 90 degrees</en></text>
-    <text name="input_GPS_FIELD_ROTATE_EAST"><de>TerraLine GPS Spur Richtung 90 Grad fein drehen</de><en>Fine rotate GPS course toward 90 degrees</en></text>
-    <text name="input_GPS_FIELD_ROTATE_WEST"><de>TerraLine GPS Spur Richtung 270 Grad fein drehen</de><en>Fine rotate GPS course toward 270 degrees</en></text>
+    <text name="input_GPS_FIELD_ROTATE_EAST"><de>TerraLine GPS Spurwinkel im Drehmodus um 0,1 Grad erhoehen</de><en>Fine rotate course clockwise by 0.1 degree when mode is on</en></text>
+    <text name="input_GPS_FIELD_ROTATE_WEST"><de>TerraLine GPS Spurwinkel im Drehmodus um 0,1 Grad verringern</de><en>Fine rotate course anticlockwise by 0.1 degree when mode is on</en></text>
   </l10n>
   <actions>
     <action name="GPS_FIELD_POWER_TOGGLE" category="VEHICLE" />
@@ -24,6 +25,7 @@
     <action name="GPS_FIELD_SHIFT_RIGHT" category="VEHICLE" />
     <action name="GPS_FIELD_SHIFT_LEFT" category="VEHICLE" />
     <action name="GPS_FIELD_MENU_TOGGLE" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_MODE" category="VEHICLE" />
     <action name="GPS_FIELD_ROTATE_90" category="VEHICLE" />
     <action name="GPS_FIELD_ROTATE_EAST" category="VEHICLE" />
     <action name="GPS_FIELD_ROTATE_WEST" category="VEHICLE" />
@@ -46,6 +48,9 @@
     </actionBinding>
     <actionBinding action="GPS_FIELD_MENU_TOGGLE">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_m" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_MODE">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_ralt KEY_w" />
     </actionBinding>
     <actionBinding action="GPS_FIELD_ROTATE_90">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_r" />

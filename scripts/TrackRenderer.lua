@@ -74,7 +74,7 @@ function GPSTrackRenderer.draw(_,vehicle)
         cx,cz=baseX+ux*projected,baseZ+uz*projected
         -- Target follows ALL A/B shifts (manual + auto), exactly as steering.
         -- Coverage borders below will follow MANUAL shifts only.
-        length=140
+        length=40 -- 40 m ahead and 40 m behind; display only
         centerColor=GPSSteeringController.enabled and {0.15,1.0,0.20} or {1.0,0.12,0.12}
         leftColor={1.0,0.83,0.06};sideDashed=true
     end
