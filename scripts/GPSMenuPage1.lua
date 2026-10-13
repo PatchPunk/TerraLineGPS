@@ -272,6 +272,7 @@ function GPSMenuPage1.onOpen(screen)
     if GPSDisplaySettings then GPSDisplaySettings.ensureLoaded() end
     screen.widthStepIndex=screen.widthStepIndex or 1
     screen.shiftStepIndex=screen.shiftStepIndex or 1
+    screen.angleStepIndex=screen.angleStepIndex or 1
     screen.nativeMessage= (GPSABLineManager.a and GPSABLineManager.b)
         and "Werte werden direkt uebernommen."
         or "Versatz: Zuerst A und B im Feld setzen (Alt+B zweimal)."
@@ -391,10 +392,16 @@ function GPSMenuPage1.draw(screen)
     panel(screen,x,.652,w,.184,"AKTUELLE SPUR")
     local deviceAutoOn=GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled==true
     button(screen,x+.240,.656,.137,.043,deviceAutoOn and "GERAET: AUTO AN" or "GERAET: AUTO AUS","toggleDeviceAuto",deviceAutoOn)
+    -- Fine rotation of the entire straight A/B corridor. Only at <=2 km/h.
+    -- Rotation pivots around A and automatically disables the steering assist.
     local courseAngle=GPSCourseManager and GPSCourseManager.getAngle()
-    if courseAngle then
-        label(screen,x+.018,.713,string.format("Kurs %.1f Grad",courseAngle),.0175,P.muted)
-    end
+    local angularSteps={0.1,0.5,1,5}
+    local angularStep=angularSteps[screen.angleStepIndex or 1]
+    label(screen,x+.017,.728,"Drehen",.019,P.white)
+    button(screen,x+.142,.701,.038,.043,"-","angleMinus",false,courseAngle==nil)
+    label(screen,x+.223,.730,courseAngle and string.format("%.1f",courseAngle) or "--",.020,courseAngle and P.green or P.muted,true,"center")
+    button(screen,x+.265,.701,.038,.043,"+","anglePlus",false,courseAngle==nil)
+    button(screen,x+.311,.701,.069,.043,string.format("%.1f",angularStep),"angleStep",false,courseAngle==nil)
     label(screen,x+.018,.755,"Spurnummer",.022,P.white)
     label(screen,x+.339,.755,fmtTrack(),.037,P.green,true,"right")
     rect(screen,x+.010,.770,w-.020,.0012,P.strokeDim)
@@ -556,6 +563,15 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
             elseif a=="shiftMinus" then shift(screen,-1)
             elseif a=="shiftPlus" then shift(screen,1)
             elseif a=="shiftStep" then screen.shiftStepIndex=(screen.shiftStepIndex%4)+1
+            elseif a=="angleStep" then
+                screen.angleStepIndex=((screen.angleStepIndex or 1)%4)+1
+                local steps={0.1,0.5,1,5}
+                info(screen,string.format("Drehschritt: %.1f Grad (nur Stillstand)",steps[screen.angleStepIndex]))
+            elseif a=="angleMinus" or a=="anglePlus" then
+                local steps={0.1,0.5,1,5}
+                local step=steps[screen.angleStepIndex or 1]
+                local ok,msg=GPSCourseManager.rotateStep(a=="anglePlus" and step or -step)
+                info(screen,msg)
             elseif a=="rotate90" then
                 local ok,msg=GPSCourseManager.rotate90()
                 info(screen,msg)

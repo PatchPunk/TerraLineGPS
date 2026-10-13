@@ -35,7 +35,7 @@ local function panel(s,x,t,w,h,title)
  rect(s,x+.010,t+.015,.004,.032,P.green);txt(s,x+.026,t+.045,title,.023,P.white,true)
  rect(s,x+.011,t+.065,w-.022,.0012,P.dim)
 end
-function M.onOpen(s) s.page3Row=s.page3Row or 1;s.page3Scroll=s.page3Scroll or 0;s.page3Message=GPSCourseManager.lastServerMessage or "A/B-Kurse des aktuellen Hofes speichern";s.page3Edit=nil;GPSCourseManager.ensureLoaded() end
+function M.onOpen(s) s.page3AngleStep=s.page3AngleStep or 1;s.page3Row=s.page3Row or 1;s.page3Scroll=s.page3Scroll or 0;s.page3Message=GPSCourseManager.lastServerMessage or "A/B-Kurse des aktuellen Hofes speichern";s.page3Edit=nil;GPSCourseManager.ensureLoaded() end
 local function notify(s,ok,msg) s.page3Message=msg;GPSLogger.info("TerraLine S3: "..tostring(msg)) end
 -- Native ScreenElement raw key events, not a soft/on-screen keyboard.
 -- The editor remains visible as a compact modal for confirmation/cancel only.
@@ -190,9 +190,14 @@ function M.draw(s)
  btn(s,x+.020,.575,.168,.065,"WINKEL EINGEBEN","setAngle")
  btn(s,x+.202,.575,.176,.065,"+90 GRAD","rotate90",false,angle==nil)
  rect(s,x+.012,.660,.360,.001,P.dim)
- txt(s,x+.019,.706,"0 = Nord   |   90 = Ost",.020,P.muted)
- txt(s,x+.019,.757,"180 = Sued   |   270 = West",.020,P.muted)
- txt(s,x+.019,.805,"Drehpunkt: A. GPS wird deaktiviert.",.019,P.yellow)
+ txt(s,x+.019,.699,"SPUR FEIN DREHEN (GRAD)",.021,P.white,true)
+ local angularSteps={0.1,0.5,1,5}
+ local angularStep=angularSteps[s.page3AngleStep or 1]
+ btn(s,x+.020,.714,.064,.052,"-","angleMinus",false,angle==nil)
+ txt(s,x+.174,.746,angle and string.format("%.2f",angle) or "--",.022,angle and P.green or P.muted,true,"center")
+ btn(s,x+.223,.714,.064,.052,"+","anglePlus",false,angle==nil)
+ btn(s,x+.297,.714,.078,.052,string.format("%.1f",angularStep),"angleStep",false,angle==nil)
+ txt(s,x+.019,.804,"Drehpunkt A | Nur im Stillstand",.018,P.yellow)
  local rx,rw=.594,.393
  panel(s,rx,.150,rw,.686,"GESPEICHERTE KURSE")
  local list=GPSCourseManager.listAll()
@@ -252,7 +257,14 @@ function M.onMouseClick(s,px,top)
             end
         elseif a=="setAngle" then
             showInput(s,"Winkel in Grad (0-359.99)",string.format("%.2f",GPSCourseManager.getAngle() or 0),GPSCourseManager.setAngle)
-        elseif a=="rotate90" then notify(s,GPSCourseManager.rotate90()) end
+        elseif a=="rotate90" then notify(s,GPSCourseManager.rotate90())
+        elseif a=="angleStep" then
+            s.page3AngleStep=((s.page3AngleStep or 1)%4)+1
+            notify(s,true,string.format("Drehschritt %.1f Grad",({0.1,0.5,1,5})[s.page3AngleStep]))
+        elseif a=="angleMinus" or a=="anglePlus" then
+            local delta=({0.1,0.5,1,5})[s.page3AngleStep or 1]
+            notify(s,GPSCourseManager.rotateStep(a=="anglePlus" and delta or -delta))
+        end
         return true
     end
  end

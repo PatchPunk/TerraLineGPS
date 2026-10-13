@@ -411,10 +411,19 @@ function M.setAngle(degrees)
     log(string.format("Winkel %.2f Grad, A bleibt fest; Versatz auf 0",angle))
     return true,string.format("Kursrichtung %.2f Grad; GPS ausgeschaltet",angle)
 end
-function M.rotate90()
+-- Precise clockwise/anticlockwise course rotation around the existing A point.
+-- Uses the same stop/safety behavior and invalidates the same caches as
+-- the existing angle-entry and +90-degree action.
+function M.rotateStep(deltaDegrees)
     local angle=M.getAngle()
     if angle==nil then return false,"Zuerst A/B setzen" end
-    return M.setAngle(angle+90)
+    if type(deltaDegrees)~="number" or deltaDegrees~=deltaDegrees or math.abs(deltaDegrees)>90 then
+        return false,"Ungueltiger Drehschritt"
+    end
+    return M.setAngle(angle+deltaDegrees)
+end
+function M.rotate90()
+    return M.rotateStep(90)
 end
 function M.saveCurrent(name)
     M.ensureLoaded()
