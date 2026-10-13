@@ -9,7 +9,7 @@
   <l10n>
     <text name="input_GPS_FIELD_POWER_TOGGLE"><de>TerraLine GPS Hauptschalter ein/aus</de><en>Toggle TerraLine GPS power</en></text>
     <text name="input_GPS_FIELD_ASSIST_TOGGLE"><de>GPS Spurhaltung ein/aus</de><en>Toggle GPS steering assist</en></text>
-    <text name="input_GPS_FIELD_AB_MARK"><de>GPS Punkt A/B setzen</de><en>Set GPS A/B point</en></text>
+    <text name="input_GPS_FIELD_AB_MARK"><de>GPS Punkt A und gerade Spur in Fahrtrichtung setzen</de><en>Set GPS point A and heading-based straight course</en></text>
     <text name="input_GPS_FIELD_SHIFT_RIGHT"><de>GPS-Spur samt Arbeitsgrenzen rechts verschieben</de><en>Shift GPS A/B line right</en></text>
     <text name="input_GPS_FIELD_SHIFT_LEFT"><de>GPS-Spur samt Arbeitsgrenzen links verschieben</de><en>Shift GPS A/B line left</en></text>
     <text name="input_GPS_FIELD_MENU_TOGGLE"><de>GPS Einstellungsmenue oeffnen/schliessen</de><en>Open/close GPS settings menu</en></text>
@@ -36,7 +36,7 @@
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_x" />
     </actionBinding>
     <actionBinding action="GPS_FIELD_AB_MARK">
-      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_b" />
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_lalt KEY_y" />
     </actionBinding>
     <actionBinding action="GPS_FIELD_SHIFT_RIGHT">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_pageup" />

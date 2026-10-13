@@ -416,7 +416,7 @@ end
 -- the existing angle-entry and +90-degree action.
 function M.rotateStep(deltaDegrees,quiet)
     local angle=M.getAngle()
-    if angle==nil then return false,"Zuerst A/B setzen" end
+    if angle==nil then return false,"Zuerst Punkt A setzen" end
     if type(deltaDegrees)~="number" or deltaDegrees~=deltaDegrees or math.abs(deltaDegrees)>90 then
         return false,"Ungueltiger Drehschritt"
     end
@@ -428,7 +428,7 @@ end
 function M.saveCurrent(name)
     M.ensureLoaded()
     local a,b=hasAB()
-    if not a then return false,"Erst A/B-Linie setzen" end
+    if not a then return false,"Erst Punkt A setzen" end
     name=cleanName(name)
     if name=="" then return false,"Kursname darf nicht leer sein" end
     local farmId=M.getFarmId()
@@ -467,6 +467,9 @@ function M.loadCourse(course)
         GPSDeviceOffsetAuto.setEnabled(false)
     end
     GPSABLineManager.a={x=course.ax,z=course.az};GPSABLineManager.b={x=course.bx,z=course.bz}
+    -- Both old two-point and new one-point courses persist as A/B coordinates.
+    -- The saved heading is always preserved; the optional pivot marker is new.
+    GPSABLineManager.singlePointMode=true
     GPSABLineManager.offsetMeters=course.offset or 0
     if GPSImplementDetector then
         GPSImplementDetector.override=course.width and course.width>=0.5 and course.width<=60 and course.width or nil

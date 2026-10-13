@@ -105,6 +105,7 @@ function GPSFieldTest:loadMap()
     if GPSDisplaySettings then GPSDisplaySettings.reset();GPSDisplaySettings.ensureLoaded() end
     self.registeredOnce_MENU=nil
     self.defaultMenuHotkeyHeld=false
+    self.defaultABHotkeyHeld=false
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
     self.shiftHeld=nil
@@ -137,7 +138,7 @@ function GPSFieldTest:loadMap()
         GPSLogger.info("WARNUNG: Geraeteversatz-Messmodul fehlt")
     end
     self.keyRegistered=false;self.keyABRegistered=false;self.keyRetry=0;self.lastKeyDiagnostic=nil
-    GPSLogger.info("v"..tostring(GPSConfig.version).." gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
+    GPSLogger.info("v"..tostring(GPSConfig.version).." gestartet: A-Kurs per Strg+Alt+Y, Richtung per Alt+J/N, EIN/AUS-Ton")
     self.lastAssistAudioState=false
     self.assistLinesActivatedAtMs=nil
     self:loadActivationBeep()
@@ -250,7 +251,7 @@ end
 -- In that case we also detect the *default* Ctrl+Alt+M combination directly.
 -- Edge-triggered: holding the keys cannot immediately close the menu again.
 -- The menu uses the same native two-key InputAction mechanism as the
--- working Alt+B and Alt+X bindings. No additional global raw key hook.
+-- working input action bindings. Only documented fallback shortcuts are polled.
 -- Secondary Alt+M detection in the standard game update loop. It only
 -- toggles on a rising edge and is suppressed during an unrelated GUI.
 -- Primary input remains the configurable GPS_FIELD_MENU_TOGGLE action.
@@ -275,6 +276,24 @@ function GPSFieldTest:pollDefaultMenuHotkey()
                 GPSMenu.toggle()
             end
         end
+    end
+end
+
+-- Fallback for the 3-key A setup. Deduplicates against native action events.
+function GPSFieldTest:pollDefaultABHotkey()
+    local k=Input
+    if type(k)~="table" or type(k.isKeyPressed)~="function" or
+       not k.KEY_y or not k.KEY_lalt or not k.KEY_lctrl then return end
+    local ok,pressed=pcall(function()
+        local ctrl=k.isKeyPressed(k.KEY_lctrl) or (k.KEY_rctrl and k.isKeyPressed(k.KEY_rctrl))
+        local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+        return ctrl and alt and k.isKeyPressed(k.KEY_y)
+    end)
+    if not ok then return end
+    local held=self.defaultABHotkeyHeld==true
+    self.defaultABHotkeyHeld=pressed==true
+    if pressed and not held and not (g_gui and g_gui.currentGui~=nil) then
+        self:handleKeyAction("AB","Ctrl+Alt+Y Fallback")
     end
 end
 
@@ -497,6 +516,7 @@ function GPSFieldTest:update(dt)
         self.totalMs=self.totalMs+(dt or 0)
         return
     end
+    self:pollDefaultABHotkey()
     self:pollDefaultShiftHotkeys()
     self:pollDefaultRotationHotkeys()
     -- Continuous fine adjustment: one centimetre on press, then slow auto-repeat.
@@ -621,7 +641,7 @@ function GPSFieldTest:update(dt)
         GPSLogger.info("Aktives Fahrzeug: "..self.vehicleStatus.." ("..source..")")
         GPSImplementDetector.lastSignature=nil
     end
-    self.status=GPSABLineManager.b and "Freie A/B-Spur aktiv" or GPSABLineManager.a and "Punkt B setzen" or "Punkt A setzen"
+    self.status=GPSABLineManager.b and "GPS-Gerade aktiv" or "Punkt A setzen (Strg+Alt+Y)"
 end
 -- Both DashboardLive HUD visibility actions use the native GIANTS HUD:
 --   DBL_HUDVISIBILITY_PART -> hud:setIsVisible(...)
@@ -702,11 +722,7 @@ function GPSFieldTest:handleKeyAction(kind,origin)
     if kind=="MENU" then
         GPSMenu.toggle()
     elseif kind=="AB" then
-        if GPSABLineManager.a==nil or GPSABLineManager.b~=nil then
-            self:commandA()
-        else
-            self:commandB()
-        end
+        self:commandA()
     elseif kind=="ROTATE" then
         local ok,msg=GPSCourseManager.rotate90()
         GPSLogger.info("90 Grad: "..msg)
@@ -850,7 +866,7 @@ end
 function GPSFieldTest:commandShift(direction,quiet)
     if not self:isMasterEnabled() then return "TerraLine GPS AUS" end
     if not GPSABLineManager.a or not GPSABLineManager.b then
-        GPSLogger.info("GPS Verschieben: Zuerst A und B setzen")
+        GPSLogger.info("GPS Verschieben: Zuerst Punkt A setzen")
         return
     end
     -- Fine adjustment: keep the GPS assist engaged on its currently locked track.
@@ -870,7 +886,19 @@ function GPSFieldTest:commandA()
     if not self:isMasterEnabled() then return "TerraLine GPS AUS" end
     GPSSteeringController.stop("A neu gesetzt")
     if GPSCourseManager then GPSCourseManager.activeCourseName=nil end
-    local text=GPSABLineManager.setA();GPSTrackGenerator.reset();GPSLogger.info(text);return text
+    local text=GPSABLineManager.setA();GPSTrackGenerator.reset();GPSTrackPosition.reset()
+    -- Internal B is already valid; prepare the line immediately.
+    local vehicle=GPSVehicleDetector.getCurrentVehicle()
+    if GPSABLineManager.a and GPSABLineManager.b and vehicle then
+        local width=GPSImplementDetector.getWidth(vehicle)
+        if type(width)=="number" and width>0 then
+            GPSTrackGenerator.generate(nil,GPSABLineManager.a,GPSABLineManager.b,width)
+            GPSTrackGenerator.cacheKey=tostring(GPSABLineManager.a)..":"..tostring(GPSABLineManager.b)..":"..tostring(width)
+            GPSTrackPosition.lastUpdate=150
+            GPSTrackPosition.update(0,vehicle)
+        end
+    end
+    GPSLogger.info(text);return text
 end
 function GPSFieldTest:commandB()
     if not self:isMasterEnabled() then return "TerraLine GPS AUS" end
@@ -932,7 +960,7 @@ if type(addConsoleCommand)=="function" then
     -- gsGPSSteerTest is intentionally not exposed in the public beta.
     addConsoleCommand("gsGPSSteerReport","Diagnosebericht der Lenkung","commandSteerReport",GPSFieldTest)
     addConsoleCommand("gsGPSAssist","GPS Spurhaltung ein/aus (0-30 km/h, gerade Spuren)","commandAssist",GPSFieldTest)
-    addConsoleCommand("gsGPSA","GPS Punkt A am Traktor setzen","commandA",GPSFieldTest)
+    addConsoleCommand("gsGPSA","GPS A setzen und Kurs in aktueller Fahrtrichtung erzeugen","commandA",GPSFieldTest)
     addConsoleCommand("gsGPSB","GPS Punkt B am Traktor setzen (mindestens 20m)","commandB",GPSFieldTest)
     addConsoleCommand("gsGPSWidth","GPS Breite in m, z.B. gsGPSWidth 3","commandWidth",GPSFieldTest)
     addConsoleCommand("gsGPSAutoWidth","GPS Arbeitsbreite automatisch","commandAutoWidth",GPSFieldTest)

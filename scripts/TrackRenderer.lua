@@ -74,7 +74,7 @@ function GPSTrackRenderer.draw(_,vehicle)
         cx,cz=baseX+ux*projected,baseZ+uz*projected
         -- Target follows ALL A/B shifts (manual + auto), exactly as steering.
         -- Coverage borders below will follow MANUAL shifts only.
-        length=140
+        length=60 -- only ahead of tractor (visual limit)
         centerColor=GPSSteeringController.enabled and {0.15,1.0,0.20} or {1.0,0.12,0.12}
         leftColor={1.0,0.83,0.06};sideDashed=true
     end
@@ -89,16 +89,10 @@ function GPSTrackRenderer.draw(_,vehicle)
     local borderZ=cz+(GPSTrackRenderer.autoVisualZ or 0)
     local lx,lz=borderX+nx*half,borderZ+nz*half
     local rx,rz=borderX-nx*half,borderZ-nz*half
-    -- Drawing distance only; no field boundary limits or island clipping.
-    -- Both sides of the projection are visible, even outside farmland.
-    local centerLimit,leftLimit,rightLimit=length,length,length
-    local backCenter,backLeft,backRight=length,length,length
+    -- Render only the forward corridor. A stays the rotation pivot.
+    -- The current vehicle projection is the visual start, without back rays.
     local terrain=g_currentMission and g_currentMission.terrainRootNode or g_terrainNode
-    -- Identical live steering target; the other ray only extends its DISPLAY.
-    line(terrain,cx,cz,ux,uz,centerLimit,centerColor[1],centerColor[2],centerColor[3],false)
-    line(terrain,cx,cz,-ux,-uz,backCenter,centerColor[1],centerColor[2],centerColor[3],false)
-    line(terrain,lx,lz,ux,uz,leftLimit,leftColor[1],leftColor[2],leftColor[3],sideDashed)
-    line(terrain,lx,lz,-ux,-uz,backLeft,leftColor[1],leftColor[2],leftColor[3],sideDashed)
-    line(terrain,rx,rz,ux,uz,rightLimit,leftColor[1],leftColor[2],leftColor[3],sideDashed)
-    line(terrain,rx,rz,-ux,-uz,backRight,leftColor[1],leftColor[2],leftColor[3],sideDashed)
+    line(terrain,cx,cz,ux,uz,length,centerColor[1],centerColor[2],centerColor[3],false)
+    line(terrain,lx,lz,ux,uz,length,leftColor[1],leftColor[2],leftColor[3],sideDashed)
+    line(terrain,rx,rz,ux,uz,length,leftColor[1],leftColor[2],leftColor[3],sideDashed)
 end

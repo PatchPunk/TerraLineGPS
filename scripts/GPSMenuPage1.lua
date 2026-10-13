@@ -246,7 +246,7 @@ local function renderGuidePreview(screen)
     rect(screen,x+.319,t+h-.072,.025,.002,P.yellow)
     label(screen,x+.030,t+h-.019,
         valid and ("Gesamte GPS-Spur "..string.format("%+.2f m",offset))
-              or "A und B zuerst setzen",.020,valid and P.green or P.yellow,true)
+              or "A setzen: Strg+Alt+Y",.020,valid and P.green or P.yellow,true)
 end
 local function fmtTrack()
     if not (GPSTrackPosition and GPSTrackPosition.valid) or type(GPSTrackPosition.track)~="number" then return "-" end
@@ -274,7 +274,7 @@ function GPSMenuPage1.onOpen(screen)
     screen.shiftStepIndex=screen.shiftStepIndex or 1
     screen.nativeMessage= (GPSABLineManager.a and GPSABLineManager.b)
         and "Werte werden direkt uebernommen."
-        or "Versatz: Zuerst A und B im Feld setzen (Alt+B zweimal)."
+        or "Versatz: Zuerst A mit Strg+Alt+Y setzen."
     screen.nativeWidth=GPSMenuPage1.getWidth()
     screen.nativeDeviceName=deviceName()
     local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
@@ -385,7 +385,7 @@ function GPSMenuPage1.draw(screen)
     button(screen,x+.346,.534,.034,.041,">","shiftStep")
     rect(screen,x+.010,.585,w-.020,.0012,P.strokeDim)
     label(screen,x+.017,.620,"A/B-Aktionen",.021,P.white)
-    button(screen,x+.168,.595,.102,.037,"A/B TAUSCH","reverseAB",false,not abValid)
+    button(screen,x+.168,.595,.102,.037, GPSABLineManager.singlePointMode and "WENDE 180" or "A/B TAUSCH","reverseAB",false,not abValid)
     button(screen,x+.276,.595,.104,.037,"SPIEGELN","mirrorOffset",false,not abValid)
 
     panel(screen,x,.652,w,.184,"AKTUELLE SPUR")
@@ -445,7 +445,7 @@ local function shift(screen,sign)
     -- There is no work-width limit: shifting means moving the FULL guide
     -- corridor, not nudging a target within an unshifted corridor.
     local ok,msg=GPSABLineManager.shift(physicalSign,amount)
-    if not ok then info(screen,msg.." (Alt+B setzt zuerst A, dann B)");return end
+    if not ok then info(screen,msg.." (Strg+Alt+Y setzt Punkt A)");return end
     refreshShiftedTracks()
     info(screen,string.format("Gesamte GPS-Spur %s um %.2f m | Gesamt: %+.2f m",sign>0 and "rechts" or "links",amount,GPSMenuPage1.getDriverRelativeOffset()))
     GPSLogger.info(string.format("Versatz Fahrersicht: Eingabe=%+d RichtungAzuB=%+d gespeicherterVersatz=%+.2f",sign,direction,GPSABLineManager.offsetMeters or 0))
@@ -456,7 +456,7 @@ end
 -- Keep current A->B orientation and GPS locked-track steering intact.
 local function mirrorOffset(screen)
     if not GPSABLineManager.a or not GPSABLineManager.b then
-        info(screen,"Versatz spiegeln: Zuerst A und B setzen")
+        info(screen,"Versatz spiegeln: Zuerst Punkt A setzen")
         return
     end
     local stored=GPSABLineManager.offsetMeters or 0
@@ -476,6 +476,11 @@ local function mirrorOffset(screen)
 end
 local function reverse(screen)
     if not GPSABLineManager.a or not GPSABLineManager.b then return end
+    if GPSABLineManager.singlePointMode then
+        local ok,msg=GPSCourseManager.setAngle((GPSCourseManager.getAngle() or 0)+180)
+        info(screen,ok and "Fahrtrichtung 180 Grad gedreht, Punkt A bleibt fest" or msg)
+        return
+    end
     -- Reverse the reference direction only when the steering assist is stopped.
     GPSSteeringController.stop("A/B-Richtung geaendert")
     GPSABLineManager.a,GPSABLineManager.b=GPSABLineManager.b,GPSABLineManager.a

@@ -19,7 +19,11 @@ local function drawA(terrain,x,z)
 end
 function M.draw(vehicle)
     local a=GPSABLineManager and GPSABLineManager.a
-    if not a or GPSABLineManager.b or not vehicle then return end
+    if not a or not vehicle then return end
+    -- The one-press course already has an internal B. Show A as the fixed
+    -- rotation pivot, but do not show the old travel-distance-to-B preview.
+    local pivotOnly=GPSABLineManager.singlePointMode and GPSABLineManager.b~=nil
+    if GPSABLineManager.b and not pivotOnly then return end
     if type(drawDebugLine)~="function" then return end
     local node=GPSVehicleDetector and GPSVehicleDetector.getPositionNode(vehicle)
     if not node or type(getWorldTranslation)~="function" then return end
@@ -28,7 +32,8 @@ function M.draw(vehicle)
     local dx,dz=x-a.x,z-a.z
     local distance=math.sqrt(dx*dx+dz*dz)
     local terrain=g_currentMission and g_currentMission.terrainRootNode or g_terrainNode
-    drawA(terrain,a.x,a.z)
+    if distance<=60 then drawA(terrain,a.x,a.z) end
+    if pivotOnly then return end
     if distance>0.1 then
         local ux,uz=dx/distance,dz/distance
         -- Only the A->tractor distance is measured, not traveled odometer distance.
@@ -52,6 +57,6 @@ function M.draw(vehicle)
         renderText(.37,.105,.023,string.format("A  >  B: %.1f / %.1f m",distance,minDist))
         if type(setTextBold)=="function" then setTextBold(false) end
         if type(setTextColor)=="function" then setTextColor(1,1,1,1) end
-        renderText(.37,.078,.016,ready and "B setzen: Alt+B" or "Weiterfahren bis 20 m Luftlinie")
+        renderText(.37,.078,.016,ready and "B nur per gsGPSB" or "Weiterfahren bis 20 m Luftlinie")
     end
 end

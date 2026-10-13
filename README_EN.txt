@@ -2,7 +2,8 @@ TerraLine GPS v0.9.9.60 – PATCHPUNK PUBLIC BETA (PC)
 Mod for Farming Simulator 25 | Developer: PatchPunk
 
 WHAT CAN TERRALINE GPS DO?
-- A/B GPS guidance using two reference points (at least 20 m apart).
+- Straight GPS guidance from point A in current tractor heading, one keypress.
+  A second direction reference is generated internally, not marked manually.
 - Steering assistance along straight guidance lines up to 30 km/h;
   steering assistance is disabled above that speed.
 - Create, save, load, and delete custom GPS courses shared by your farm.
@@ -26,10 +27,11 @@ INSTALLATION
 
 CONTROLS (can be reassigned in the FS25 controls menu)
 Alt+T               : Toggle TerraLine GPS main power ON/OFF
-Alt+B               : Set point A or point B
+Ctrl+Alt+Y          : Set A and immediately create a straight course
 Alt+X               : Toggle GPS steering assistance ON/OFF
 Alt+M               : Open/close the TerraLine menu
 Alt+R               : Rotate the guidance line by 90 degrees
+Alt+J / Alt+N       : Rotate around A in +/-0.5 degrees (hold to accelerate)
 Alt+Page Up/Down    : Shift the GPS guidance line in 1 cm increments
 
 IMPORTANT BETA INFORMATION

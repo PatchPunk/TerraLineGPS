@@ -2,7 +2,8 @@ TerraLine GPS v0.9.9.60 – PATCHPUNK PUBLIC BETA (PC)
 Mod fuer Farming Simulator 25 | Entwickler: PatchPunk
 
 WAS KANN TERRALINE GPS?
-- A/B-GPS-Spurfuehrung mit zwei Positionsmarken (mindestens 20 m Abstand).
+- Gerade GPS-Spur ab Punkt A in aktueller Fahrtrichtung; nur ein Tastendruck.
+  Der zweite Richtungswert wird intern berechnet, nicht manuell markiert.
 - Lenkunterstuetzung fuer gerade Spuren bis 30 km/h; oberhalb deaktiviert.
 - Eigene GPS-Kurse hofbezogen erstellen, speichern, laden und loeschen.
 - Aktuelle Spur manuell verschieben, um 90 Grad drehen und Arbeitsbreite aendern.
@@ -22,10 +23,11 @@ INSTALLATION
 
 BEDIENUNG (belegbar im LS25-Tastenmenue)
 Alt+T             : TerraLine GPS Hauptschalter EIN/AUS
-Alt+B             : Punkt A bzw. B setzen
+Strg+Alt+Y        : Punkt A setzen, gerade Spur entsteht sofort
 Alt+X             : GPS-Lenkunterstuetzung EIN/AUS
 Alt+M             : TerraLine-Menue oeffnen/schliessen
 Alt+R             : Spur um 90 Grad drehen
+Alt+J / Alt+N     : Spur um A um +0,5 / -0,5 Grad drehen (Halten: schneller)
 Alt+Bildauf/-ab  : GPS-Spur in 1-cm-Schritten verschieben
 
 WICHTIG ZUR BETA
