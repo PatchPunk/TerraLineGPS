@@ -378,7 +378,7 @@ local function refresh()
     GPSTrackGenerator.reset();GPSTrackPosition.reset()
     if GPSAutoMirror and type(GPSAutoMirror.reset)=="function" then GPSAutoMirror.reset() end
 end
-function M.setAngle(degrees)
+function M.setAngle(degrees,quiet)
     local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
     local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>2 then return false,"Winkel bitte im Stillstand aendern" end
@@ -408,19 +408,19 @@ function M.setAngle(degrees)
     GPSABLineManager.b=targetB
     GPSABLineManager.offsetMeters=0
     M.activeCourseName=nil
-    log(string.format("Winkel %.2f Grad, A bleibt fest; Versatz auf 0",angle))
+    if not quiet then log(string.format("Winkel %.2f Grad, A bleibt fest; Versatz auf 0",angle)) end
     return true,string.format("Kursrichtung %.2f Grad; GPS ausgeschaltet",angle)
 end
 -- Precise clockwise/anticlockwise course rotation around the existing A point.
 -- Uses the same stop/safety behavior and invalidates the same caches as
 -- the existing angle-entry and +90-degree action.
-function M.rotateStep(deltaDegrees)
+function M.rotateStep(deltaDegrees,quiet)
     local angle=M.getAngle()
     if angle==nil then return false,"Zuerst A/B setzen" end
     if type(deltaDegrees)~="number" or deltaDegrees~=deltaDegrees or math.abs(deltaDegrees)>90 then
         return false,"Ungueltiger Drehschritt"
     end
-    return M.setAngle(angle+deltaDegrees)
+    return M.setAngle(angle+deltaDegrees,quiet)
 end
 function M.rotate90()
     return M.rotateStep(90)

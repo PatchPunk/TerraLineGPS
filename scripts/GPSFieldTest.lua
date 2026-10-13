@@ -108,6 +108,8 @@ function GPSFieldTest:loadMap()
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
     self.shiftHeld=nil
+    self.rotateHeld=nil
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     self.menuFallbackNotice=false
     self.clock=0; self.totalMs=0; self.status="A/B bereit";self.vehicleStatus="-"
     self.currentVehicle=nil
@@ -151,7 +153,8 @@ function GPSFieldTest:deleteMap()
     if GPSABLineManager then GPSABLineManager.clear() end
     if GPSImplementDetector then GPSImplementDetector.override=nil end
     if GPSDisplaySettings then GPSDisplaySettings.reset() end
-    self.isLoaded=false;self.masterEnabled=false;self.powerByFarm={};self.powerByVehicle=nil;self.lastPowerVehicle=nil;self.currentVehicle=nil;self.shiftHeld=nil
+    self.isLoaded=false;self.masterEnabled=false;self.powerByFarm={};self.powerByVehicle=nil;self.lastPowerVehicle=nil;self.currentVehicle=nil;self.shiftHeld=nil;self.rotateHeld=nil
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     self.defaultPowerHotkeyHeld=false
     self.defaultShiftRightHeld=false;self.defaultShiftLeftHeld=false
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Karte verlassen")
@@ -313,6 +316,43 @@ function GPSFieldTest:pollDefaultShiftHotkeys()
     self.defaultShiftLeftHeld=left
 end
 
+-- Keyboard fallback for Alt+J/Alt+N, so the default shortcuts still work
+-- when GIANTS does not fire the action events for a particular key layout.
+function GPSFieldTest:pollDefaultRotationHotkeys()
+    local k=Input
+    if type(k)~="table" or type(k.isKeyPressed)~="function" or not k.KEY_lalt then return end
+    if g_gui and g_gui.currentGui~=nil then
+        self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
+        self.rotateHeld=nil
+        return
+    end
+    local ok,east,west=pcall(function()
+        local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+        return (alt and k.KEY_j and k.isKeyPressed(k.KEY_j))==true,
+               (alt and k.KEY_n and k.isKeyPressed(k.KEY_n))==true
+    end)
+    if not ok then return end
+    if east and west then east=false;west=false end -- contradictory controls
+    if east and not self.defaultRotateEastHeld then
+        if not (self.rotateHeld and self.rotateHeld.direction==1) then
+            GPSLogger.info("GPS Alt+J: Feindrehung Richtung 90 Grad (Fallback)")
+            self:onRotateKey(1,1)
+        end
+    elseif not east and self.defaultRotateEastHeld then
+        self:onRotateKey(1,0)
+    end
+    if west and not self.defaultRotateWestHeld then
+        if not (self.rotateHeld and self.rotateHeld.direction==-1) then
+            GPSLogger.info("GPS Alt+N: Feindrehung Richtung 270 Grad (Fallback)")
+            self:onRotateKey(-1,1)
+        end
+    elseif not west and self.defaultRotateWestHeld then
+        self:onRotateKey(-1,0)
+    end
+    self.defaultRotateEastHeld=east
+    self.defaultRotateWestHeld=west
+end
+
 -- Master power is separate from Alt+X. The GPS menu stays accessible when powered OFF.
 function GPSFieldTest:isMasterEnabled()
     local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
@@ -338,7 +378,7 @@ function GPSFieldTest:syncPowerForVehicle(vehicle)
         GPSSteeringController.stop("Fahrzeugwechsel: GPS-Lenkung aus")
         if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("Fahrzeugwechsel") end
         self.assistLinesActivatedAtMs=nil
-        self.shiftHeld=nil
+        self.shiftHeld=nil;self.rotateHeld=nil
     end
 end
 function GPSFieldTest:syncPowerForFarm(farmId)
@@ -369,9 +409,10 @@ function GPSFieldTest:setMasterEnabled(enabled)
         return "TerraLine GPS "..(enabled and "EIN" or "AUS")
     end
     self.masterEnabled=enabled
-    self.shiftHeld=nil
+    self.shiftHeld=nil;self.rotateHeld=nil
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     if not enabled then
         GPSSteeringController.stop("TerraLine Hauptschalter AUS")
         if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("TerraLine GPS AUS") end
@@ -452,11 +493,12 @@ function GPSFieldTest:update(dt)
         self:registerAction("MENU")
     end
     if not self:isMasterEnabled() then
-        self.shiftHeld=nil
+        self.shiftHeld=nil;self.rotateHeld=nil
         self.totalMs=self.totalMs+(dt or 0)
         return
     end
     self:pollDefaultShiftHotkeys()
+    self:pollDefaultRotationHotkeys()
     -- Continuous fine adjustment: one centimetre on press, then slow auto-repeat.
     -- A release event clears held direction; no steering state is changed.
     if g_gui and g_gui.currentGui~=nil then
@@ -474,6 +516,28 @@ function GPSFieldTest:update(dt)
             repeats=repeats+1
         end
     end
+    -- Fine rotation: one 0.5-degree click, then progressive auto-repeat while held.
+    -- Use the same 380 ms delay/acceleration as the existing shift controls.
+    if g_gui and g_gui.currentGui~=nil then
+        self.rotateHeld=nil
+    elseif self.rotateHeld then
+        local held=self.rotateHeld
+        held.elapsed=held.elapsed+(dt or 0)
+        local repeats=0
+        -- Bound elapsed processing to avoid many full course recomputations
+        -- in one frame. Total angular motion stays deterministic per repeat.
+        while held.elapsed>=held.nextAt and repeats<8 do
+            local ok,msg=self:commandRotateFine(held.direction,true)
+            if not ok then
+                GPSLogger.info("GPS Feindrehung gestoppt: "..tostring(msg))
+                self.rotateHeld=nil
+                break
+            end
+            local heldSeconds=held.nextAt/1000
+            held.nextAt=held.nextAt+math.max(25,140-30*math.max(0,heldSeconds-0.38))
+            repeats=repeats+1
+        end
+    end
     -- FS25 rebuilds action events regularly; register within update, not just once.
     -- All assignments come from the game's inputBinding settings (keyboard/gamepad).
     if not (g_gui and g_gui.currentGui~=nil) then
@@ -482,6 +546,8 @@ function GPSFieldTest:update(dt)
         self:registerAction("SHIFT_RIGHT")
         self:registerAction("SHIFT_LEFT")
         self:registerAction("ROTATE")
+        self:registerAction("ROTATE_EAST")
+        self:registerAction("ROTATE_WEST")
     end
     GPSSteeringDiagnostics.update(dt)
     if GPSABLineManager.a and GPSABLineManager.b then
@@ -664,6 +730,36 @@ function GPSFieldTest:onShiftKey(direction,inputValue)
         self.shiftHeld=nil
     end
 end
+function GPSFieldTest:commandRotateFine(direction,quiet)
+    if not self:isMasterEnabled() then return false,"TerraLine GPS AUS" end
+    if GPSMenu and GPSMenu.isOpen() then return false,"Menue geoeffnet" end
+    -- The exact existing geometry and safety rules apply to every increment.
+    local ok,msg=GPSCourseManager.rotateStep(direction*0.5,quiet)
+    if not quiet then GPSLogger.info("GPS Feindrehung: "..tostring(msg)) end
+    return ok,msg
+end
+function GPSFieldTest:onRotateKey(direction,inputValue)
+    if not self:isMasterEnabled() then self.rotateHeld=nil;return end
+    if (g_gui and g_gui.currentGui~=nil) or (GPSMenu and GPSMenu.isOpen()) then self.rotateHeld=nil;return end
+    if inputValue==nil then return end
+    if inputValue>0.5 then
+        if self.rotateHeld and self.rotateHeld.direction==direction then return end
+        local ok,msg=self:commandRotateFine(direction,false)
+        if ok then
+            self.rotateHeld={direction=direction,elapsed=0,nextAt=380}
+        else
+            self.rotateHeld=nil
+        end
+    elseif self.rotateHeld and self.rotateHeld.direction==direction then
+        self.rotateHeld=nil
+    end
+end
+function GPSFieldTest:onRotateEastKey(actionName,inputValue,callbackState,isAnalog)
+    self:onRotateKey(1,inputValue)
+end
+function GPSFieldTest:onRotateWestKey(actionName,inputValue,callbackState,isAnalog)
+    self:onRotateKey(-1,inputValue)
+end
 function GPSFieldTest:onShiftRightKey(actionName,inputValue,callbackState,isAnalog)
     self:onShiftKey(1,inputValue)
 end
@@ -691,7 +787,7 @@ function GPSFieldTest:onMenuKey(actionName,inputValue,callbackState,isAnalog)
 end
 function GPSFieldTest:registerAction(kind)
     local binding=g_inputBinding
-    local actions={AB="GPS_FIELD_AB_MARK",ASSIST="GPS_FIELD_ASSIST_TOGGLE",SHIFT_RIGHT="GPS_FIELD_SHIFT_RIGHT",SHIFT_LEFT="GPS_FIELD_SHIFT_LEFT",MENU="GPS_FIELD_MENU_TOGGLE",ROTATE="GPS_FIELD_ROTATE_90",POWER="GPS_FIELD_POWER_TOGGLE"}
+    local actions={AB="GPS_FIELD_AB_MARK",ASSIST="GPS_FIELD_ASSIST_TOGGLE",SHIFT_RIGHT="GPS_FIELD_SHIFT_RIGHT",SHIFT_LEFT="GPS_FIELD_SHIFT_LEFT",MENU="GPS_FIELD_MENU_TOGGLE",ROTATE="GPS_FIELD_ROTATE_90",ROTATE_EAST="GPS_FIELD_ROTATE_EAST",ROTATE_WEST="GPS_FIELD_ROTATE_WEST",POWER="GPS_FIELD_POWER_TOGGLE"}
     local actionName=actions[kind]
     if not actionName then return end
     local id=InputAction and InputAction[actionName]
@@ -702,10 +798,10 @@ function GPSFieldTest:registerAction(kind)
         end
         return
     end
-    local callbacks={AB=self.onABKey,ASSIST=self.onAssistKey,SHIFT_RIGHT=self.onShiftRightKey,SHIFT_LEFT=self.onShiftLeftKey,MENU=self.onMenuKey,ROTATE=self.onRotate90Key,POWER=self.onPowerKey}
+    local callbacks={AB=self.onABKey,ASSIST=self.onAssistKey,SHIFT_RIGHT=self.onShiftRightKey,SHIFT_LEFT=self.onShiftLeftKey,MENU=self.onMenuKey,ROTATE=self.onRotate90Key,ROTATE_EAST=self.onRotateEastKey,ROTATE_WEST=self.onRotateWestKey,POWER=self.onPowerKey}
     local callback=callbacks[kind]
-    local isShift=kind=="SHIFT_RIGHT" or kind=="SHIFT_LEFT"
-    local ok,registered,eventId=pcall(binding.registerActionEvent,binding,id,self,callback,isShift,true,false,true)
+    local heldAction=kind=="SHIFT_RIGHT" or kind=="SHIFT_LEFT" or kind=="ROTATE_EAST" or kind=="ROTATE_WEST"
+    local ok,registered,eventId=pcall(binding.registerActionEvent,binding,id,self,callback,heldAction,true,false,true)
     if ok and registered then
         if kind=="AB" then
             self.keyABEventId=eventId

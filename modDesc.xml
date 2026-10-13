@@ -14,6 +14,8 @@
     <text name="input_GPS_FIELD_SHIFT_LEFT"><de>GPS-Spur samt Arbeitsgrenzen links verschieben</de><en>Shift GPS A/B line left</en></text>
     <text name="input_GPS_FIELD_MENU_TOGGLE"><de>GPS Einstellungsmenue oeffnen/schliessen</de><en>Open/close GPS settings menu</en></text>
     <text name="input_GPS_FIELD_ROTATE_90"><de>TerraLine GPS Spur 90 Grad drehen</de><en>TerraLine GPS rotate lane 90 degrees</en></text>
+    <text name="input_GPS_FIELD_ROTATE_EAST"><de>TerraLine GPS Spur Richtung 90 Grad fein drehen</de><en>Fine rotate GPS course toward 90 degrees</en></text>
+    <text name="input_GPS_FIELD_ROTATE_WEST"><de>TerraLine GPS Spur Richtung 270 Grad fein drehen</de><en>Fine rotate GPS course toward 270 degrees</en></text>
   </l10n>
   <actions>
     <action name="GPS_FIELD_POWER_TOGGLE" category="VEHICLE" />
@@ -23,6 +25,8 @@
     <action name="GPS_FIELD_SHIFT_LEFT" category="VEHICLE" />
     <action name="GPS_FIELD_MENU_TOGGLE" category="VEHICLE" />
     <action name="GPS_FIELD_ROTATE_90" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_EAST" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_WEST" category="VEHICLE" />
   </actions>
   <inputBinding>
     <actionBinding action="GPS_FIELD_POWER_TOGGLE">
@@ -45,6 +49,12 @@
     </actionBinding>
     <actionBinding action="GPS_FIELD_ROTATE_90">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_r" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_EAST">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_j" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_WEST">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_n" />
     </actionBinding>
   </inputBinding>
   <extraSourceFiles>
