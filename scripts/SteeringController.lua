@@ -6,22 +6,81 @@ C.maxAssistSpeedKmh=30 -- Shared SP/MP speed limit (km/h).
 local function clamp(v,lo,hi) return math.max(lo,math.min(hi,v)) end
 local function log(msg) if GPSLogger then GPSLogger.info("GPS-LENK "..msg) end end
 local function debug(msg) if GPSLogger and GPSLogger.debug then GPSLogger.debug("GPS-LENK "..msg) end end
+-- Diagnostic-only instrumentation (2026-10-13). No intervention in steering maths.
+-- Bounded INFO logging: at activation, in the first seconds of movement, then
+-- once per 2 seconds, and once at disengagement. No per-frame log flood.
+local function diagFmtNum(value, places)
+    if type(value)~="number" then return "n/a" end
+    return string.format("%."..tostring(places or 2).."f",value)
+end
+local function diagContext()
+    local d=C.diagInfo or {}
+    return string.format("phase=%s spur=%s speed=%skm/h abstand=%sm kursfehler=%sdeg dir=%s breite=%sm lenkSoll=%s lenkIst=%s rohAchse=%s mpAchse=%s",
+        tostring(d.phase or "unbekannt"),tostring(C.lockedTrack or d.track or "n/a"),
+        diagFmtNum(d.speed,1),diagFmtNum(d.offset,3),diagFmtNum(d.headingDeg,1),
+        tostring(d.dir or "n/a"),diagFmtNum(d.width,2),
+        diagFmtNum(d.desired,3),diagFmtNum(d.command,3),
+        diagFmtNum(C.diagRawAxis,3),diagFmtNum(C.diagNativeRawAxis,3))
+end
+local function logDiagnostic(msg)
+    log("DIAG "..msg)
+end
+local function captureActivationGeometry(vehicle,track)
+    local d={phase="Aktivierung",track=track}
+    local speed=(type(vehicle.getLastSpeed)=="function") and math.abs(vehicle:getLastSpeed()) or 0
+    d.speed=speed
+    -- Read-only context. Protect diagnostics from unusual vehicles/AI nodes.
+    local ok,err=pcall(function()
+        local node=GPSVehicleDetector.getPositionNode(vehicle)
+        if node==nil then d.phase="Position fehlt";return end
+        local x,_,z=getWorldTranslation(node)
+        local vx,_,vz=localDirectionToWorld(node,0,0,1)
+        local a,b=GPSABLineManager.a,GPSABLineManager.b
+        local dx,dz=b.x-a.x,b.z-a.z
+        local len=math.sqrt(dx*dx+dz*dz)
+        local fl=math.sqrt(vx*vx+vz*vz)
+        if len<10 or fl<0.5 then d.phase="Richtung ungueltig";return end
+        local ux,uz=dx/len,dz/len
+        vx,vz=vx/fl,vz/fl
+        local dot=vx*ux+vz*uz
+        local dir=dot>=0 and 1 or -1
+        local tx,tz=ux*dir,uz*dir
+        d.headingDeg=math.deg(math.atan2(vx*tz-vz*tx,vx*tx+vz*tz))
+        d.dir=dir
+        d.width=GPSImplementDetector.getWidth(vehicle)
+        if d.width and d.width>=0.5 then
+            d.offset=(x-a.x)*(-uz)+(z-a.z)*ux-track*d.width
+        end
+    end)
+    if not ok then d.phase="Messung fehlgeschlagen: "..tostring(err) end
+    return d
+end
 function C.stop(reason)
-    if C.enabled then log("AUS: "..tostring(reason)) end
-    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false
+    if C.enabled then
+        log("AUS: "..tostring(reason))
+        logDiagnostic("STOP grund="..tostring(reason).." | "..diagContext())
+    end
+    C.enabled=false; C.vehicle=nil; C.lastValue=0; C.lockedTrack=nil; C.reason=reason or "Aus"; C.logClock=0; C.guardStart=nil; C.guardClock=0; C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.diagInfo=nil;C.diagRawAxis=nil;C.diagNativeRawAxis=nil;C.diagClock=0;C.diagElapsed=0
+end
+local function rejectActivation(message)
+    logDiagnostic("START ABGELEHNT: "..message)
+    return message
 end
 function C.toggle(vehicle)
     if C.enabled then C.stop("Manuell ausgeschaltet"); return "GPS Lenkung AUS" end
-    if not vehicle or not vehicle.spec_drivable then return "GPS: Kein lenkbares Fahrzeug" end
-    if GPSSteeringDiagnostics and GPSSteeringDiagnostics.active then return "GPS: Erst Lenktest beenden" end
-    if vehicle.spec_aiAutomaticSteering and vehicle.spec_aiAutomaticSteering.steeringEnabled then return "GPS: GIANTS Lenkassistent deaktivieren" end
+    if not vehicle or not vehicle.spec_drivable then return rejectActivation("GPS: Kein lenkbares Fahrzeug") end
+    if GPSSteeringDiagnostics and GPSSteeringDiagnostics.active then return rejectActivation("GPS: Erst Lenktest beenden") end
+    if vehicle.spec_aiAutomaticSteering and vehicle.spec_aiAutomaticSteering.steeringEnabled then return rejectActivation("GPS: GIANTS Lenkassistent deaktivieren") end
     if not GPSABLineManager.a or not GPSABLineManager.b or not GPSTrackPosition.valid or GPSTrackPosition.track==nil then
-        return "GPS: A/B und gueltige Spur erforderlich"
+        return rejectActivation("GPS: A/B und gueltige Spur erforderlich")
     end
-    if not C.install(vehicle) then return "GPS: Lenk-Hook nicht verfuegbar" end
+    if not C.install(vehicle) then return rejectActivation("GPS: Lenk-Hook nicht verfuegbar") end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>C.maxAssistSpeedKmh then return "GPS: Aktivierung nur bis "..tostring(C.maxAssistSpeedKmh).." km/h" end
+    if speed>C.maxAssistSpeedKmh then return rejectActivation("GPS: Aktivierung nur bis "..tostring(C.maxAssistSpeedKmh).." km/h") end
     C.vehicle=vehicle;C.enabled=true;C.lockedTrack=GPSTrackPosition.track;C.lastValue=0;C.logClock=0;C.guardStart=nil;C.guardClock=0;C.waitingForMotion=false;C.networkSteeringValue=nil;C.injectingInput=false;C.networkPathLogged=false
+    C.diagInfo=captureActivationGeometry(vehicle,C.lockedTrack)
+    C.diagRawAxis=nil;C.diagNativeRawAxis=nil;C.diagClock=0;C.diagElapsed=0
+    logDiagnostic("START | "..diagContext())
     C.reason="Aktiv | Spur "..tostring(C.lockedTrack)
     log("EIN: Spur "..tostring(C.lockedTrack).." bei "..string.format("%.1f km/h",speed))
     return "GPS Lenkung EIN | Spur "..tostring(C.lockedTrack)
@@ -48,11 +107,17 @@ function C.compute(vehicle,dt,mpMode)
     -- Cross product with this coordinate order produces NEGATIVE heading for a
     -- target to the RIGHT. LS25 steering axis positive is RIGHT (verified in v0.9.2).
     local heading=math.atan2(vx*targetZ-vz*targetX,vx*targetX+vz*targetZ)
+    local info=C.diagInfo or {}
+    C.diagInfo=info
+    info.phase="Kurswinkelpruefung";info.dir=dir;info.headingDeg=math.deg(heading)
+    info.speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+    info.offset=nil;info.width=nil;info.desired=nil;info.command=nil
     if math.abs(heading)>0.35 then C.stop("Winkel groesser 20 Grad");return nil end
     local width=GPSImplementDetector.getWidth(vehicle)
     if not width or width<0.5 then C.stop("Arbeitsbreite fehlt");return nil end
     local nx,nz=-uz,ux
     local offset=(x-a.x)*nx+(z-a.z)*nz-C.lockedTrack*width
+    info.phase="Spurabweichungspruefung";info.width=width;info.offset=offset
     if math.abs(offset)>math.min(1.2,width*0.42) then C.stop("Abweichung zu gross");return nil end
     -- Unbounded A/B guidance: no field-edge stop and no segment list.
     -- Empirical v0.9.3 logs: signed offset and heading ran AWAY from zero.
@@ -80,6 +145,8 @@ function C.compute(vehicle,dt,mpMode)
     end
     -- Rate limit to avoid abrupt wheel movements. dt is milliseconds.
     local command=C.lastValue+clamp(desired-C.lastValue,-maxDelta,maxDelta)
+    info.phase=mpMode and "MP-Regelung" or "SP-Regelung"
+    info.speed=speed;info.desired=desired;info.command=command
     -- Early trend watchdog: prevents extended wrong-way correction if sign still wrong.
     -- Observe absolute lateral error over a moving 2.2-second window.
     if C.guardStart==nil then C.guardStart=math.abs(offset); C.guardClock=0 end
@@ -91,6 +158,13 @@ function C.compute(vehicle,dt,mpMode)
             C.stop("Sicherheitsstopp: Spurabweichung waechst"); return nil
         end
         C.guardStart=math.abs(offset); C.guardClock=0
+    end
+    -- Log real steering calculations only while running, not at every physics call.
+    C.diagClock=(C.diagClock or 0)+(dt or 0)
+    C.diagElapsed=(C.diagElapsed or 0)+(dt or 0)
+    if C.diagClock>=((C.diagElapsed or 0)<3000 and 500 or 2000) then
+        C.diagClock=0
+        logDiagnostic("FAHRT | "..diagContext())
     end
     C.lastValue=command;C.lastCross=offset
     C.reason=string.format("Spur %d | %d cm | Lenk %.2f | frei",C.lockedTrack,math.floor(math.abs(offset)*100+0.5),command)
@@ -112,6 +186,7 @@ function C.install(vehicle)
         if C.enabled and self==C.vehicle and not (GPSSteeringDiagnostics and GPSSteeringDiagnostics.active) then
             local speed=type(self.getLastSpeed)=="function" and math.abs(self:getLastSpeed()) or 0
             -- axisSide is raw player steering from game before applying our command.
+            C.diagRawAxis=type(axisSide)=="number" and axisSide or nil
             if speed>C.maxAssistSpeedKmh then
                 C.stop("Geschwindigkeit ueber "..tostring(C.maxAssistSpeedKmh).." km/h")
             elseif speed<2 then
@@ -122,6 +197,8 @@ function C.install(vehicle)
                     C.waitingForMotion=true
                     C.reason="Aktiv (Stillstand) | Spur "..tostring(C.lockedTrack)
                     log("PAUSE: GPS bleibt beim Anhalten aktiv | Spur "..tostring(C.lockedTrack))
+                    if C.diagInfo then C.diagInfo.phase="Stillstand";C.diagInfo.speed=speed end
+                    logDiagnostic("PAUSE | "..diagContext())
                 end
                 C.lastValue=0
                 C.guardStart=nil
@@ -134,6 +211,8 @@ function C.install(vehicle)
                 if C.waitingForMotion then
                     C.waitingForMotion=false
                     log("FORTSETZEN: GPS lenkt nach dem Anfahren wieder | Spur "..tostring(C.lockedTrack))
+                    if C.diagInfo then C.diagInfo.phase="Anfahren";C.diagInfo.speed=speed end
+                    logDiagnostic("ANFAHREN | "..diagContext())
                 end
                 local v=C.compute(self,dt)
                 if v~=nil then axisSide=v end
@@ -150,6 +229,7 @@ function C.install(vehicle)
         local originalInput=vehicle.setSteeringInput
         vehicle.setSteeringInput=function(self,value,isAnalog,deviceCategory,...)
             if C.enabled and self==C.vehicle and not C.injectingInput then
+                C.diagNativeRawAxis=type(value)=="number" and value or nil
                 if type(value)=="number" and math.abs(value)>0.25 then
                     C.stop("MP: Manueller Lenkeingriff")
                 elseif C.networkSteeringValue~=nil then
@@ -191,11 +271,17 @@ function C.updateNetworkSteering(dt,vehicle)
         if not C.waitingForMotion then
             C.waitingForMotion=true
             log("MP: GPS wartet bei Stillstand auf Weiterfahrt")
+            if C.diagInfo then C.diagInfo.phase="MP-Stillstand";C.diagInfo.speed=speed end
+            logDiagnostic("MP-PAUSE | "..diagContext())
         end
         C.lastValue=0;C.guardStart=nil;C.guardClock=0;C.networkSteeringValue=0
         return
     end
-    if C.waitingForMotion then C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv") end
+    if C.waitingForMotion then
+        C.waitingForMotion=false;log("MP: Lenkeingabe nach Anfahren aktiv")
+        if C.diagInfo then C.diagInfo.phase="MP-Anfahren";C.diagInfo.speed=speed end
+        logDiagnostic("MP-ANFAHREN | "..diagContext())
+    end
     local value=C.compute(vehicle,dt,true)
     if value==nil then return end
     -- v0.9.9.52: physical steering polarity in the normal Drivable input path
@@ -205,6 +291,7 @@ function C.updateNetworkSteering(dt,vehicle)
     -- MP input sent into the native steering function. Do not invert the
     -- stored logical guidance value, which the deviation watchdog uses.
     local nativeInput=-value
+    -- Log is the logical pre-inversion command, not the injected native input.
     C.networkSteeringValue=nativeInput
     -- Mark synthetic input so the manual-driver input wrapper doesn't treat
     -- TerraLine as a user intervention. The normal Drivable steering-wheel
