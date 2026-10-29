@@ -38,8 +38,8 @@ local function fieldIdOf(field)
  if validId(field) then return field end
  if type(field)~="table" then return nil end
  if type(field.getId)=="function" then
-  local ok,id=pcall(field.getId,field)
-  if ok and validId(id) then return id end
+  local id=field:getId()
+  if validId(id) then return id end
  end
  local id=field.fieldId or field.id or field.index
  return validId(id) and id or nil
@@ -50,22 +50,22 @@ local function resolveField(x,z)
  local farmland,farmlandId
  if farmManager then
   if type(farmManager.getFarmlandAtWorldPosition)=="function" then
-   local ok,obj=pcall(farmManager.getFarmlandAtWorldPosition,farmManager,x,z)
-   if ok and type(obj)=="table" then farmland=obj;farmlandId=obj.id end
+   local obj=farmManager:getFarmlandAtWorldPosition(x,z)
+   if type(obj)=="table" then farmland=obj;farmlandId=obj.id end
   end
   if not validId(farmlandId) and type(farmManager.getFarmlandIdAtWorldPosition)=="function" then
-   local ok,id=pcall(farmManager.getFarmlandIdAtWorldPosition,farmManager,x,z)
-   if ok and validId(id) then farmlandId=id end
+   local id=farmManager:getFarmlandIdAtWorldPosition(x,z)
+   if validId(id) then farmlandId=id end
   end
  end
  local fieldId
  if type(FSDensityMapUtil)=="table" and type(FSDensityMapUtil.getFieldIdAtWorldPosition)=="function" then
-  local ok,id=pcall(FSDensityMapUtil.getFieldIdAtWorldPosition,x,z)
-  if ok and validId(id) then fieldId=id end
+  local id=FSDensityMapUtil.getFieldIdAtWorldPosition(x,z)
+  if validId(id) then fieldId=id end
  end
  if not fieldId and fieldManager and type(fieldManager.getFieldAtWorldPosition)=="function" then
-  local ok,field=pcall(fieldManager.getFieldAtWorldPosition,fieldManager,x,z)
-  if ok then fieldId=fieldIdOf(field) end
+  local field=fieldManager:getFieldAtWorldPosition(x,z)
+  fieldId=fieldIdOf(field)
  end
  if not fieldId and fieldManager and validId(farmlandId) then
   local mapped=fieldManager.farmlandIdFieldMapping and fieldManager.farmlandIdFieldMapping[farmlandId]
@@ -73,8 +73,8 @@ local function resolveField(x,z)
   if not fieldId then
    local fields=fieldManager.fields
    if type(fieldManager.getFields)=="function" then
-    local ok,result=pcall(fieldManager.getFields,fieldManager)
-    if ok then fields=result end
+    local result=fieldManager:getFields()
+    if type(result)=="table" then fields=result end
    end
    if type(fields)=="table" then
     for _,field in pairs(fields) do
@@ -94,17 +94,51 @@ function D.detectFieldOnce()
  if not vehicle then return "Kein Fahrzeug" end
  local node=detector.getPositionNode and detector.getPositionNode(vehicle)
  if not node or type(getWorldTranslation)~="function" then return "Position unbekannt" end
- local ok,x,_,z=pcall(getWorldTranslation,node)
- if not ok or type(x)~="number" or type(z)~="number" then return "Position unbekannt" end
- local success,fieldId,farmlandId=pcall(resolveField,x,z)
- if not success then
-  if GPSLogger and GPSLogger.info then GPSLogger.info("DEV Feldsuche Fehler: "..tostring(fieldId)) end
-  return "Abfragefehler"
- end
+ local x,_,z=getWorldTranslation(node)
+ if type(x)~="number" or type(z)~="number" then return "Position unbekannt" end
+ local fieldId,farmlandId=resolveField(x,z)
  local result=fieldId and ("Feld "..fieldId) or "Feld-ID nicht verfuegbar"
  if validId(farmlandId) then result=result.." | Flurstueck "..farmlandId end
  if GPSLogger and GPSLogger.info then GPSLogger.info("DEV Feldsuche (nur bei Freischaltung): "..result) end
  return result
+end
+-- The detailed logger is a local, session-only developer option.
+-- Unlocking the developer page does NOT activate it; default is OFF.
+function D.isDiagnosticsEnabled()
+ return GPSConfig~=nil and GPSConfig.showDiagnostics==true
+end
+function D.setDiagnosticsEnabled(enabled)
+ if not D.unlocked or GPSConfig==nil then return false end
+ local isOn=enabled==true
+ if GPSLogger and GPSLogger.setDiagnostics then
+  GPSLogger.setDiagnostics(isOn,"Entwicklermenue")
+ else
+  GPSConfig.showDiagnostics=isOn
+ end
+ D.logging=isOn
+ D.message=isOn and "Testprotokoll EIN (lokale LOG)" or "Testprotokoll AUS"
+ if isOn then D.logSnapshot() end
+ return true
+end
+-- Serverkonsole und SP-Konsole: nur lokales Logging, KEIN MP-Network-Event.
+-- Auf dem Dedicated Server muss der Admin den Schalter separat aktivieren.
+function D:consoleDiagnostics(option)
+ local action=tostring(option or "status"):lower()
+ if action=="on" or action=="ein" or action=="1" then
+  if GPSLogger and GPSLogger.setDiagnostics then
+   GPSLogger.setDiagnostics(true,"Konsole")
+  end
+  D.logSnapshot(true)
+ elseif action=="off" or action=="aus" or action=="0" then
+  if GPSLogger and GPSLogger.setDiagnostics then
+   GPSLogger.setDiagnostics(false,"Konsole")
+  end
+ elseif action=="snapshot" then
+  D.logSnapshot(true)
+ elseif action~="status" then
+  return "Benutzung: gsTLGPSDiag on / off / status / snapshot"
+ end
+ return "TerraLine Diagnose "..(D.isDiagnosticsEnabled() and "EIN" or "AUS").." (nur auf dieser Maschine)"
 end
 function D.getFieldDiagnostic()
  return D.unlocked and D.fieldDiagnostic or "Diagnose gesperrt"
@@ -113,24 +147,38 @@ function D.getImplementDiagnostic(vehicle)
  if not vehicle then return "Kein Fahrzeug" end
  local probe=GPSDeviceOffsetProbe
  if not probe or type(probe.getData)~="function" then return "Messung nicht verfuegbar" end
- local ok,center,desc,complete=pcall(probe.getData,vehicle)
- if not ok then return "Messfehler" end
+ local center,desc,complete=probe.getData(vehicle)
  if type(center)~="number" then return tostring(desc or "Keine Messung") end
  return string.format("Arbeitsmitte %+.2f m (%s)",center,complete and "vollstaendig" or "teilweise")
 end
-function D.logSnapshot()
- if not D.unlocked then return end
+function D.logSnapshot(fromConsole)
+ if not D.unlocked and not fromConsole then return end
  local a=GPSABLineManager and GPSABLineManager.a
  local b=GPSABLineManager and GPSABLineManager.b
  local v=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle and GPSVehicleDetector.getCurrentVehicle()
  local field=D.getFieldDiagnostic(v)
  local implement=D.getImplementDiagnostic(v)
  if GPSLogger and GPSLogger.info then
-  GPSLogger.info(string.format("DEV SNAPSHOT vehicle=%s A=%s B=%s shift=%s field=%s implement=%s",
-   tostring(v and (v.getName and v:getName() or v.typeName)),
+  local vehicleName="-"
+  if v then
+   local n=type(v.getName)=="function" and v:getName() or v.typeName
+   if n~=nil then vehicleName=tostring(n) end
+  end
+  local speed="-"
+  if v and type(v.getLastSpeed)=="function" then
+   local n=v:getLastSpeed()
+   if type(n)=="number" then speed=string.format("%.1f",math.abs(n)) end
+  end
+  local controller=GPSSteeringController
+  local track=GPSTrackPosition
+  local output=string.format("DEV SNAPSHOT vehicle=%s kmh=%s A=%s B=%s shift=%s feld=%s implement=%s lenkung=%s spur=%s abstand=%s",
+   vehicleName,speed,
    a and string.format("%.2f/%.2f",a.x,a.z) or "-",
    b and string.format("%.2f/%.2f",b.x,b.z) or "-",
-   tostring(GPSABLineManager and GPSABLineManager.offsetMeters),field,implement))
+   tostring(GPSABLineManager and GPSABLineManager.offsetMeters),field,implement,
+   tostring(controller and controller.enabled==true),
+   tostring(track and track.track),tostring(track and track.offset))
+  if GPSLogger.force then GPSLogger.force(output) else GPSLogger.info(output) end
  end
  D.message="Diagnose-Snapshot ins Log geschrieben"
 end

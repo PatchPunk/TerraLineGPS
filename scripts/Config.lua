@@ -1,6 +1,7 @@
--- TerraLine GPS | Interne Projektmarke: Hallo hier bin ich, der CODE! | TL-GPS/2026-10-12
+-- TerraLine GPS | PatchPunk Public Beta | 2026-10-12
 GPSConfig = {
-    version = "0.9.9.29", checkIntervalMs = 1500,
-    lineStrokes = 1, lineDurationSeconds = 0, showDiagnostics = false,
+    version = "1.0.0.0", publicBeta = true, checkIntervalMs = 1500,
+    lineStrokes = 1, lineDurationSeconds = 0,
+    lineHeightMeters = 0.10, lineThicknessMeters = 0.00, showDiagnostics = false,
     defaultWorkWidth = 3, terrainStepMeters = 2.0
 }

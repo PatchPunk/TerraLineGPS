@@ -30,6 +30,10 @@ function D.stop(reason)
     D.active=false;D.vehicle=nil;D.timer=0
 end
 function D.start(vehicle,sign)
+    -- Public release: a console/editor call must never inject steering.
+    if GPSConfig == nil or GPSConfig.publicBeta ~= false then
+        return "Lenkimpuls-Diagnose nur in interner Entwicklerfassung"
+    end
     if D.active then D.stop("Abgebrochen");return "Lenkdiagnose abgebrochen" end
     if GPSSteeringController then GPSSteeringController.stop("Diagnosetest") end
     if not vehicle or not vehicle.spec_drivable then return "Lenkdiagnose: kein lenkbares Fahrzeug" end

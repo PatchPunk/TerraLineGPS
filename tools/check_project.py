@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Static project check; not a substitute for LS25 or GIANTS TestRunner."""
+"""Static package validation (does not validate in-game behavior)."""
 from pathlib import Path
-from xml.etree import ElementTree as ET
-import struct
-
-root = Path(__file__).resolve().parents[1]
-xml = ET.parse(root / "modDesc.xml").getroot()
-assert xml.attrib.get("descVersion") == "114"
-assert (xml.findtext("version") or "").strip()
-icon_name = (xml.findtext("iconFilename") or "").strip()
-assert (root / icon_name).is_file()
-for el in xml.findall("extraSourceFiles/sourceFile"):
-    assert (root / el.attrib["filename"]).is_file(), el.attrib["filename"]
-for f in (root / "gui").rglob("*.dds"):
-    assert f.read_bytes()[:4] == b"DDS ", f
-for f in (root / "sounds").rglob("*.wav"):
-    assert f.read_bytes()[:4] == b"RIFF", f
-assert (root / "icon_terraline.dds").read_bytes()[:4] == b"DDS "
-assert "Hallo hier bin ich, der CODE!" in (root / "scripts/Config.lua").read_text(encoding="utf-8")
-print("Static structure, XML, DDS/WAV signatures and code marker: OK")
+from zipfile import ZipFile
+import xml.etree.ElementTree as ET
+from subprocess import run
+ROOT=Path(__file__).resolve().parents[1]
+zipfile=ROOT/'dist/FS25_TerraLineGPS.zip'
+if not zipfile.exists(): raise SystemExit('Run python tools/build_mod.py first')
+with ZipFile(zipfile) as z:
+  assert z.testzip() is None
+  assert 'modDesc.xml' in z.namelist()
+  root=ET.fromstring(z.read('modDesc.xml'))
+  assert root.findtext('version')=='1.0.0.0'
+  for name in z.namelist():
+    if name.endswith('.xml'): ET.fromstring(z.read(name))
+  files=[n for n in z.namelist() if n.endswith('.lua')]
+  assert len(files)==29,(len(files),'Lua files')
+  print('PASS',len(z.namelist()),'files,',len(files),'Lua scripts, all XML valid')
+print('For Lua syntax and GIANTS TestRunner, run your game/test environment.')

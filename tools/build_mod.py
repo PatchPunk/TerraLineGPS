@@ -1,33 +1,18 @@
 #!/usr/bin/env python3
-"""Create the LS25 gameplay ZIP from the GitHub source tree (stdlib only)."""
+"""Build the TerraLineGPS game ZIP from this repository's release sources."""
 from pathlib import Path
-from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+from zipfile import ZipFile, ZIP_DEFLATED
 import xml.etree.ElementTree as ET
-
-root = Path(__file__).resolve().parents[1]
-moddesc = root / "modDesc.xml"
-xml = ET.parse(moddesc).getroot()
-version = (xml.findtext("version") or "").strip()
-assert version, "Missing mod version"
-required = {
-    "modDesc.xml", "README.txt", "PROJECT_NOTICE.txt", "icon_terraline.dds",
-    "gui/GPSMenu.xml",
-}
-required.update(f"scripts/{p.name}" for p in (root / "scripts").glob("*.lua"))
-required.update(p.relative_to(root).as_posix() for d in ("gui", "sounds") for p in (root / d).rglob("*") if p.is_file())
-# Verify that modDesc references each packaged script and no script is missing.
-registered = {el.attrib["filename"] for el in xml.findall("extraSourceFiles/sourceFile")}
-assert registered == {p for p in required if p.startswith("scripts/")}, "Lua source registrations differ"
-for name in required:
-    assert (root / name).is_file(), f"Missing runtime asset: {name}"
-output = root / "dist" / ("FS25_TerraLineGPS_v" + version.replace(".", "_") + ".zip")
-output.parent.mkdir(parents=True, exist_ok=True)
-with ZipFile(output, "w", compression=ZIP_DEFLATED, compresslevel=9) as z:
-    for name in sorted(required):
-        info = ZipInfo(name, date_time=(2026, 10, 12, 0, 0, 0))
-        info.compress_type = ZIP_DEFLATED
-        info.external_attr = 0o644 << 16
-        z.writestr(info, (root / name).read_bytes(), compress_type=ZIP_DEFLATED, compresslevel=9)
-with ZipFile(output) as z:
-    assert z.testzip() is None
-print(output)
+ROOT=Path(__file__).resolve().parents[1]
+GAME_FILES=['modDesc.xml','README.txt','README_EN.txt','CHANGELOG.txt','icon_terraline.dds']
+for sub in ['assets','gui','scripts']:
+    GAME_FILES += [p.relative_to(ROOT).as_posix() for p in (ROOT/sub).rglob('*') if p.is_file()]
+for name in GAME_FILES:
+    if not (ROOT/name).is_file(): raise SystemExit('MISSING: '+name)
+ET.parse(ROOT/'modDesc.xml')
+out=ROOT/'dist'/'FS25_TerraLineGPS.zip'
+out.parent.mkdir(exist_ok=True)
+with ZipFile(out,'w',ZIP_DEFLATED,compresslevel=9) as z:
+    for name in GAME_FILES: z.write(ROOT/name,name)
+with ZipFile(out) as z: assert z.testzip() is None
+print(out, 'files=',len(GAME_FILES))

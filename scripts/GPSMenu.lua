@@ -27,12 +27,16 @@ function GPSMenuScreen:onOpen(...)
     local binding=g_inputBinding
     local id=InputAction and InputAction.GPS_FIELD_MENU_TOGGLE
     if binding and id and type(binding.registerActionEvent)=="function" then
-        pcall(binding.registerActionEvent,binding,id,self,self.onToggleKey,false,true,false,true)
+        -- The action only exists when the GUI input context supports it.
+        -- Do not mask API errors; they must be visible in the LS25 log.
+        binding:registerActionEvent(id,self,self.onToggleKey,false,true,false,true)
     end
     -- Individual compressed DDS pages are created on first visit, not all
     -- at menu open. Overlay instances are cached for subsequent visits.
-    -- Geometry: centered, 25 percent smaller than v0.9.9.5 (0.9*0.75 = 0.675).
-    self.pageX,self.pageY,self.pageW,self.pageH=0.213125,0.213125,0.57375,0.57375
+    -- Geometry: centered. UI refresh: 0.62 of the screen (was 0.57375) so the
+    -- larger, clearer text stays readable. Only these four numbers set the size.
+    self.pageX,self.pageY,self.pageW,self.pageH=0.19,0.19,0.62,0.62
+    self.hoverX,self.hoverY=nil,nil
     GPSLogger.info("TerraLine GPS Menue geoeffnet (Seiten 1, 3 und 4; S2 entfernt)")
 end
 
@@ -91,6 +95,13 @@ function GPSMenuScreen:inputEvent(action,value,eventUsed)
 end
 
 function GPSMenuScreen:mouseEvent(posX,posY,isDown,isUp,button,eventUsed)
+    -- Track the pointer in page-local coordinates for hover highlights.
+    if self.pageW and self.pageH then
+        local hx=(posX-self.pageX)/self.pageW
+        local hy=((1-posY)-self.pageY)/self.pageH
+        if hx>=0 and hx<=1 and hy>=0 and hy<=1 then self.hoverX,self.hoverY=hx,hy
+        else self.hoverX,self.hoverY=nil,nil end
+    end
     if isUp and (button==Input.MOUSE_BUTTON_LEFT or button==1) then
         -- Convert screen mouse coordinates back to the image's 0..1 space
         -- so all controls stay aligned after changing display scale.
@@ -176,6 +187,12 @@ function GPSMenuScreen:onMenuLayerDraw(element)
 end
 
 function GPSMenuScreen:draw(...)
+    -- Shop/workshop changes or vehicle switches can occur while the screen is
+    -- open. An unequipped vehicle must never retain access to the GPS menu.
+    if self.isOpen and not GPSMenu.isAvailableForCurrentVehicle() then
+        if g_gui and type(g_gui.showGui)=="function" then g_gui:showGui("") end
+        return
+    end
     self.layerDrawn=false
     GPSMenuScreen:superClass().draw(self,...)
     -- Extra safety in case the XML child failed to emit its callback.
@@ -188,15 +205,16 @@ function GPSMenu.register()
     if GPSMenu.registered then return true end
     if g_gui==nil or type(g_gui.loadGui)~="function" or type(ScreenElement)~="table" then return false end
     local controller=GPSMenuScreen.new()
-    local ok,gui=pcall(g_gui.loadGui,g_gui,GPSMenu.modDir.."gui/GPSMenu.xml",GPSMenu.guiName,controller)
-    if ok and gui~=nil then
+    -- Screen loading errors should propagate into the GIANTS log.
+    local gui=g_gui:loadGui(GPSMenu.modDir.."gui/GPSMenu.xml",GPSMenu.guiName,controller)
+    if gui~=nil then
         GPSMenu.screen=controller
         GPSMenu.registered=true
         GPSLogger.info("GPS Menue (S1, S3, S4) ueber GIANTS ScreenElement registriert")
         return true
     end
     if not GPSMenu.registerFailureLogged then
-        GPSLogger.info("GPS Menue Registrierung fehlgeschlagen: "..tostring(ok and "XML nicht geladen" or gui))
+        GPSLogger.info("GPS Menue Registrierung fehlgeschlagen: XML nicht geladen")
         GPSMenu.registerFailureLogged=true
     end
     return false
@@ -204,7 +222,20 @@ end
 function GPSMenu.isOpen()
     return GPSMenu.screen~=nil and GPSMenu.screen.isOpen==true
 end
+function GPSMenu.isAvailableForCurrentVehicle()
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle and
+        GPSVehicleDetector.getCurrentVehicle()
+    return vehicle~=nil and GPSVehicleEquipment~=nil and
+        type(GPSVehicleEquipment.isInstalled)=="function" and
+        GPSVehicleEquipment.isInstalled(vehicle)==true
+end
 function GPSMenu.toggle()
+    -- This central gate covers the native keybind, keyboard fallback and the
+    -- gsGPSMenu console command. Unpowered but EQUIPPED vehicles may open it.
+    if not GPSMenu.isOpen() and not GPSMenu.isAvailableForCurrentVehicle() then
+        GPSLogger.info("GPS Menue gesperrt: TerraLine GPS fuer dieses Fahrzeug nicht eingebaut")
+        return false
+    end
     if not GPSMenu.register() then
         GPSLogger.info("GPS Menue: GUI noch nicht verfuegbar")
         return false
@@ -223,8 +254,9 @@ function GPSMenu.toggle()
         return false
     end
     GPSLogger.info("GPS Menue: Oeffnen angefordert")
-    local ok,result=pcall(g_gui.showGui,g_gui,GPSMenu.guiName)
-    local shown=ok and result~=nil
-    GPSLogger.info("GPS Menue: showGui="..tostring(shown)..(ok and "" or (" Fehler="..tostring(result))))
+    -- Preserve the existing non-nil success contract while exposing errors.
+    local result=g_gui:showGui(GPSMenu.guiName)
+    local shown=result~=nil
+    GPSLogger.info("GPS Menue: showGui="..tostring(shown))
     return shown
 end

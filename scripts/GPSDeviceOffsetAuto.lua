@@ -1,62 +1,97 @@
--- Optional, guarded automatic adjustment for asymmetric implement work areas.
--- OFF by default. Separate bookkeeping keeps manual and detected offsets apart.
--- Changes the existing A/B guidance translation, never SteeringController.lua.
-GPSDeviceOffsetAuto={enabled=false,applied=0,lastA=nil,lastB=nil,lastVehicle=nil,
-                     candidate=nil,candidateCount=0,lastStatus="Aus",clock=0}
+-- Experimental singleplayer compensation for asymmetric implements.
+-- The saved A/B work center, work-width borders and manual course shift
+-- MUST NOT move. Only the tractor's steering target is displaced by the
+-- measured work-center offset. OFF by default; measurement only at rest.
+GPSDeviceOffsetAuto={enabled=false,center=nil,ready=false,lastA=nil,lastB=nil,
+    lastVehicle=nil,candidate=nil,candidateCount=0,lastStatus="Aus",clock=0}
 local D=GPSDeviceOffsetAuto
-local function refresh()
-    if GPSTrackGenerator then GPSTrackGenerator.cacheKey=nil end
-    if GPSTrackPosition then GPSTrackPosition.lastUpdate=150 end
-end
-local function applyDelta(delta)
-    if math.abs(delta)<0.005 then return true end
-    local ok,msg=GPSABLineManager.shift(delta>0 and 1 or -1,math.abs(delta))
-    if not ok then return false,msg end
-    refresh()
-    return true
+local function clearMeasurement()
+    D.center=nil;D.ready=false;D.candidate=nil;D.candidateCount=0
+    D.workMinX=nil;D.workMaxX=nil;D.workWidth=nil;D.comboKey=nil
 end
 function D.reset()
-    D.enabled=false;D.applied=0;D.lastA=nil;D.lastB=nil;D.lastVehicle=nil
-    D.candidate=nil;D.candidateCount=0;D.lastStatus="Aus";D.clock=0
+    D.enabled=false;D.lastA=nil;D.lastB=nil;D.lastVehicle=nil
+    D.clock=0;D.lastStatus="Aus"
+    clearMeasurement()
 end
+-- Manual mirroring or A/B exchange may reverse the course direction.
+-- Work-center geometry is not a stored A/B shift: never negate it or move A/B.
 function D.onCourseMirrored()
-    D.applied=-(D.applied or 0)
-    D.lastA=GPSABLineManager.a
-    D.lastB=GPSABLineManager.b
-    D.candidate=nil;D.candidateCount=0
+    clearMeasurement()
+    D.lastA=nil;D.lastB=nil;D.clock=1000
+    if D.enabled then D.lastStatus="Kurs geaendert: erneut im Stillstand messen" end
+end
+function D.getCorrection(vehicle,dir)
+    if not D.enabled then return 0 end
+    if not D.ready or vehicle~=D.lastVehicle or
+        D.lastA~=GPSABLineManager.a or D.lastB~=GPSABLineManager.b then
+        return nil
+    end
+    if dir~=1 and dir~=-1 then return nil end
+    -- A manual width change or newly measured mower combination must not
+    -- reuse the earlier automatic steering correction.
+    if type(D.workWidth)=="number" and GPSImplementDetector and
+        math.abs(GPSImplementDetector.getWidth(vehicle)-D.workWidth)>0.05 then
+        return nil
+    end
+    if D.comboKey~=nil and GPSImplementDetector.comboKey~=D.comboKey then
+        return nil
+    end
+    -- A/B normal (-uz,+ux) points LEFT. Measured tractor-local x points
+    -- RIGHT. Thus tractor target in A/B-normal coordinates = center*dir.
+    return D.center*dir
+end
+-- Return geometry in tractor-local X only when the SAME measurement is valid
+-- for steering, vehicle and A/B pair. Do not re-sample moving implements in draw().
+function D.getWorkEdges(vehicle,dir)
+    if D.getCorrection(vehicle,dir)==nil or not D.enabled then return nil end
+    local lo,hi=D.workMinX,D.workMaxX
+    if type(lo)~="number" or type(hi)~="number" or
+        lo~=lo or hi~=hi or hi-lo<0.5 then return nil end
+    return lo,hi
 end
 function D.setEnabled(state)
     if GPSSteeringController and GPSSteeringController.enabled then
         return false,"Geraete-Auto: GPS-Lenkung vorher ausschalten"
     end
-    local vehicle=GPSVehicleDetector.getCurrentVehicle()
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
     local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>2 then return false,"Geraete-Auto: Zum Umschalten anhalten" end
-    if not state and (D.applied or 0)~=0 then
-        local ok,msg=applyDelta(-D.applied)
-        if not ok then return false,msg end
-        D.applied=0
+    if state then
+        if g_client~=nil and g_server==nil then
+            return false,"Geraete-Auto: Dieser Test ist nur fuer Singleplayer"
+        end
+        if g_currentMission and g_currentMission.missionDynamicInfo and
+            g_currentMission.missionDynamicInfo.isMultiplayer then
+            return false,"Geraete-Auto: Multiplayer noch nicht getestet"
+        end
+        if not vehicle then return false,"Geraete-Auto: Traktor fehlt" end
+        if not GPSABLineManager.a or not GPSABLineManager.b then
+            return false,"Geraete-Auto: Zuerst A/B erstellen"
+        end
     end
     D.enabled=state==true
-    D.candidate=nil;D.candidateCount=0;D.clock=1000
-    D.lastStatus=D.enabled and "Messung abwarten (GPS aus, anhalten)" or "Aus"
-    if GPSLogger then GPSLogger.info("Geraete-Auto "..(D.enabled and "AN" or "AUS")) end
-    return true,"Geraete-Auto "..(D.enabled and "AN: Messung abwarten" or "AUS: Zusatzversatz entfernt")
+    clearMeasurement()
+    D.lastA=GPSABLineManager.a;D.lastB=GPSABLineManager.b
+    D.lastVehicle=vehicle
+    D.clock=1000
+    D.lastStatus=D.enabled and "Messung abwarten: anhalten, GPS aus" or "Aus"
+    if GPSLogger then GPSLogger.info("Geraete-Auto "..(D.enabled and "AN (Lenkziel, A/B unveraendert)" or "AUS (kein gespeicherter Kursversatz)")) end
+    return true,D.enabled and "Geraete-Auto AN: Arbeitsmitte wird gemessen" or "Geraete-Auto AUS: Normaler GPS-Modus"
 end
 function D.update(dt,vehicle)
     if not D.enabled then return end
     local a,b=GPSABLineManager.a,GPSABLineManager.b
     if a~=D.lastA or b~=D.lastB or vehicle~=D.lastVehicle then
-        -- New A/B points start without offset; never "undo" a shift on a new course.
         D.lastA=a;D.lastB=b;D.lastVehicle=vehicle
-        D.applied=0;D.candidate=nil;D.candidateCount=0
+        clearMeasurement()
+        D.clock=1000
     end
     if not a or not b or not vehicle then D.lastStatus="A/B oder Traktor fehlt";return end
-    if GPSSteeringController and GPSSteeringController.enabled then
-        D.lastStatus="GPS aktiv: Korrektur gesperrt";return
-    end
+    -- Never change a locked steering target while GPS is active or moving.
+    if GPSSteeringController and GPSSteeringController.enabled then return end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>2 then D.lastStatus="Zum Nachstellen anhalten";return end
+    if speed>2 then D.lastStatus="Zum Einmessen anhalten";return end
     D.clock=(D.clock or 0)+math.max(0,dt or 0)
     if D.clock<900 then return end
     D.clock=0
@@ -65,45 +100,70 @@ function D.update(dt,vehicle)
     local fx,_,fz=localDirectionToWorld(node,0,0,1)
     local dx,dz=b.x-a.x,b.z-a.z
     local length=math.sqrt(dx*dx+dz*dz)
-    if length<10 then return end
+    if length<10 then D.lastStatus="A/B zu kurz";return end
     local alignment=(fx*dx+fz*dz)/length
-    if math.abs(alignment)<0.90 then D.lastStatus="A/B ausrichten";return end
-    local dir=(GPSAutoMirror and GPSAutoMirror.enabled and GPSAutoMirror.confirmedDir) or (alignment>0 and 1 or -1)
-    local center,desc,complete=GPSDeviceOffsetProbe.getData(vehicle)
-    local target
-    if center==nil then
-        -- Unknown device: do not silently move any course. Keep last known
-        -- correction until the user switches it off or a valid new measurement.
-        D.lastStatus="Keine Geraetegeometrie erkannt"
+    if math.abs(alignment)<0.90 then D.lastStatus="Traktor parallel zu A/B ausrichten";return end
+    local isCombo,comboReady,comboLo,comboHi,comboWidth,comboReason,comboKey=
+        GPSImplementDetector.getVerifiedMowerCombo(vehicle)
+    if isCombo and not comboReady then
+        D.lastStatus="Maehwerk-Kombi: "..tostring(comboReason)
+        clearMeasurement()
         return
     end
-    if not complete or math.abs(center)>2.0 then
-        D.lastStatus="Geraet nicht sicher erkannt"
-        return
+    -- getData uses the verified WorkArea span for stable mower combinations.
+    -- Preserve the previous AI-marker path for single implements.
+    local center,desc,complete,lo,hi=GPSDeviceOffsetProbe.getData(vehicle)
+    if type(center)~="number" or center~=center then
+        D.lastStatus="Keine Geraetegeometrie erkannt";clearMeasurement();return
     end
-    local width=GPSImplementDetector.getWidth(vehicle) or 3
-    -- A measured device center LEFT (-x) means the tractor must steer RIGHT
-    -- relative to travel, hence a positive shift for A->B.
-    target= -center*dir
-    if math.abs(target)<0.03 then target=0 end
-    -- Never move the guidance line beyond the nominal working-width corridor.
-    local maxAuto=math.min(1.50,math.max(0,width*0.5-0.05))
-    if math.abs(target)>maxAuto then
-        D.lastStatus=string.format("Messung %+.2fm ausserhalb Korridor",target)
-        return
+    local width=GPSImplementDetector.getWidth(vehicle)
+    if not complete or type(width)~="number" or width<0.5 or
+        type(lo)~="number" or type(hi)~="number" or
+        lo~=lo or hi~=hi or hi-lo<0.5 then
+        D.lastStatus="Arbeitsbreite/Arbeitskanten nicht sicher erkannt";clearMeasurement();return
     end
-    if D.candidate~=nil and math.abs(D.candidate-target)<0.04 then
+    if isCombo then
+        -- These must describe the SAME unfolded geometry. In Phase 7 the
+        -- effective width could still be 6.30 m while the edges spanned
+        -- only 4.07 m; this is no longer a permissible steering reference.
+        if math.abs(width-comboWidth)>0.06 or
+            math.abs(hi-lo-comboWidth)>0.06 or
+            math.abs(lo-comboLo)>0.06 or math.abs(hi-comboHi)>0.06 or
+            math.abs(center-(lo+hi)*0.5)>0.04 then
+            D.lastStatus="Maehwerk-Kombi: Breite und Arbeitskanten widersprechen sich"
+            clearMeasurement()
+            return
+        end
+    end
+    -- Only near-center work offsets; in particular allow the 1.67m mower
+    -- measurement previously refused by the hardcoded 1.50m limit.
+    local maximum=math.min(3.0,math.max(0,width*.5-.10))
+    if math.abs(center)>maximum then
+        D.lastStatus=string.format("Arbeitsmitte %+.2fm ausserhalb sicherer Grenze %.2fm",center,maximum)
+        clearMeasurement();return
+    end
+    local sample=D.candidate
+    if type(sample)=="table" and sample.key==comboKey and
+        math.abs(sample.center-center)<0.04 and
+        math.abs(sample.lo-lo)<0.04 and math.abs(sample.hi-hi)<0.04 and
+        math.abs(sample.width-width)<0.04 then
         D.candidateCount=D.candidateCount+1
     else
-        D.candidate=target;D.candidateCount=1
+        D.candidate={center=center,lo=lo,hi=hi,width=width,key=comboKey}
+        D.candidateCount=1
+        -- Revoke the old release immediately if the geometry changes.
+        D.center=nil;D.ready=false;D.workMinX=nil;D.workMaxX=nil
+        D.workWidth=nil;D.comboKey=nil
     end
-    if D.candidateCount<2 then D.lastStatus="Geraetewert stabilisieren";return end
-    local delta=target-(D.applied or 0)
-    if math.abs(delta)>=0.03 then
-        local ok,msg=applyDelta(delta)
-        if not ok then D.lastStatus=tostring(msg);return end
-        D.applied=target
-        GPSLogger.info(string.format("Geraete-Auto uebernommen: Arbeitsmitte=%+.2f m, Richtung=%d, Korrektur=%+.2f m, Delta=%+.2f m",center,dir,target,delta))
+    if D.candidateCount<3 then
+        D.lastStatus=string.format("Arbeitsgeometrie stabilisieren (%d/3)",D.candidateCount)
+        return
     end
-    D.lastStatus=string.format("Aktiv: Arbeitsmitte %+.2fm, Korrektur %+.2fm",center,D.applied or 0)
+    local previous=D.center
+    D.center=center;D.workMinX=lo;D.workMaxX=hi;D.workWidth=width
+    D.comboKey=comboKey;D.ready=true
+    D.lastStatus=string.format("Bereit: Geraetemitte %+.2fm, Traktorversatz automatisch",center)
+    if previous==nil or math.abs(previous-center)>0.03 then
+        GPSLogger.info(string.format("Geraete-Auto BEREIT: Mitte=%+.2fm, Breite=%.2fm, Arbeitskanten=%+.2f..%+.2fm, Markersicher=%s | A/B unveraendert",center,width,lo,hi,tostring(complete)))
+    end
 end

@@ -1,19 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<modDesc descVersion="114">
-  <author>TerraLine GPS Project</author>
-  <version>0.9.9.44</version>
-  <title><en>TerraLine GPS</en><de>TerraLine GPS</de></title>
+<modDesc descVersion="115">
+  <author>PatchPunk</author>
+  <version>1.0.0.0</version>
+  <title><en>TerraLine GPS</en></title>
   <iconFilename>icon_terraline.dds</iconFilename>
-  <description><en>PC-only A/B GPS guidance with named and saved courses, steering assistance, adjustable line visualization, manual lane shifting and implement-offset diagnostics. Singleplayer only.</en><de>A/B-GPS-Spurfuehrung fuer PC mit gespeicherten Kursen, Lenkassistent, Linien-Optik, manuellem Spurversatz und Geraeteversatz-Diagnose. Nur Einzelspieler.</de></description>
-  <multiplayer supported="false" />
+  <description>
+    <en><![CDATA[
+TerraLine GPS adds A/B guidance and steering assistance for Farming Simulator 25 on PC.
+
+Features:
+- Create and save named A/B courses for individual farms.
+- Automatically capture a nearby parallel lane using predictive steering in singleplayer (successfully tested up to approximately 29.4 km/h); maximum GPS steering speed 30 km/h.
+- Shift and fine-rotate courses and adjust the visible guide lines.
+- GPS status in the speedometer; native FS25 engagement and disengagement sounds.
+- Multiplayer support is under development: concurrent-player operation is not yet confirmed.
+
+Keyboard controls (rebindable):
+Left Alt+T: toggle TerraLine GPS
+Left Alt+B: press 1 arm A/B, press 2 start measuring at A, press 3 set B after 20 m
+Left Alt+X: toggle steering assistance (hold for lane renumbering)
+Left Alt+M: open/close settings
+Left Alt+R: rotate course by 90 degrees
+Right Alt+W: toggle course fine-angle mode
+Left Alt+J / Left Alt+N: adjust course angle by 0.1 degrees in fine-angle mode
+Left Alt+Page Up / Page Down: shift A/B course
+
+  ]]></en>
+    <de><![CDATA[
+TerraLine GPS erweitert den Landwirtschafts-Simulator 25 auf PC um A/B-Spurfuehrung mit Lenkassistenz.
+
+Funktionen:
+- A/B-Kurse erstellen, benennen und je Hof speichern.
+- Vorausschauende automatische Spuraufnahme im Einzelspieler (bis ca. 29,4 km/h erfolgreich erprobt); GPS-Geschwindigkeitsgrenze 30 km/h.
+- Kurse seitlich verschieben, Winkel feinjustieren und Fuehrungslinien einstellen.
+- GPS-Status am Tacho und originale LS25-GPS-Toene beim Ein- und Ausschalten.
+- Multiplayer-Unterstuetzung in Entwicklung: Betrieb mit gleichzeitig mehreren Spielern noch nicht bestaetigt.
+
+Tastenbelegung (im Spiel aenderbar):
+Linke Alt+T: TerraLine GPS ein/aus
+Linke Alt+B: 1x A/B scharf, 2x A setzen und Messung starten, 3x B ab 20 m speichern
+Linke Alt+X: GPS-Lenkung ein/aus (halten: Spur umnummerieren)
+Linke Alt+M: Einstellungsmenue ein/aus
+Linke Alt+R: Kurs um 90 Grad drehen
+Rechte Alt+W: Feinwinkelmodus ein/aus
+Linke Alt+J / Linke Alt+N: Kurswinkel im Feinwinkelmodus um 0,1 Grad aendern
+Linke Alt+Bild hoch / Bild runter: A/B-Kurs verschieben
+
+  ]]></de>
+  </description>
+  <multiplayer supported="true" />
   <l10n>
     <text name="input_GPS_FIELD_POWER_TOGGLE"><de>TerraLine GPS Hauptschalter ein/aus</de><en>Toggle TerraLine GPS power</en></text>
-    <text name="input_GPS_FIELD_ASSIST_TOGGLE"><de>GPS Spurhaltung ein/aus</de><en>Toggle GPS steering assist</en></text>
-    <text name="input_GPS_FIELD_AB_MARK"><de>GPS Punkt A/B setzen</de><en>Set GPS A/B point</en></text>
+    <text name="input_GPS_FIELD_ASSIST_TOGGLE"><de>GPS Lenkung kurz ein/aus, halten: aktuelle Spur als 1</de><en>Tap: toggle assist; hold 3s: renumber nearest lane as 1</en></text>
+    <text name="input_GPS_FIELD_AB_MARK"><de>GPS A/B: scharf, A starten, B speichern</de><en>GPS A/B: arm, start at A, save B</en></text>
     <text name="input_GPS_FIELD_SHIFT_RIGHT"><de>GPS-Spur samt Arbeitsgrenzen rechts verschieben</de><en>Shift GPS A/B line right</en></text>
     <text name="input_GPS_FIELD_SHIFT_LEFT"><de>GPS-Spur samt Arbeitsgrenzen links verschieben</de><en>Shift GPS A/B line left</en></text>
     <text name="input_GPS_FIELD_MENU_TOGGLE"><de>GPS Einstellungsmenue oeffnen/schliessen</de><en>Open/close GPS settings menu</en></text>
+    <text name="input_GPS_FIELD_ROTATE_MODE"><de>TerraLine GPS Spurwinkelmodus umschalten (Rechts-Alt + W)</de><en>Toggle fine angle mode (Right Alt + W)</en></text>
     <text name="input_GPS_FIELD_ROTATE_90"><de>TerraLine GPS Spur 90 Grad drehen</de><en>TerraLine GPS rotate lane 90 degrees</en></text>
+    <text name="input_GPS_FIELD_ROTATE_EAST"><de>TerraLine GPS Spurwinkel im Drehmodus um 0,1 Grad erhoehen</de><en>Fine rotate course clockwise by 0.1 degree when mode is on</en></text>
+    <text name="input_GPS_FIELD_ROTATE_WEST"><de>TerraLine GPS Spurwinkel im Drehmodus um 0,1 Grad verringern</de><en>Fine rotate course anticlockwise by 0.1 degree when mode is on</en></text>
   </l10n>
   <actions>
     <action name="GPS_FIELD_POWER_TOGGLE" category="VEHICLE" />
@@ -22,7 +68,10 @@
     <action name="GPS_FIELD_SHIFT_RIGHT" category="VEHICLE" />
     <action name="GPS_FIELD_SHIFT_LEFT" category="VEHICLE" />
     <action name="GPS_FIELD_MENU_TOGGLE" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_MODE" category="VEHICLE" />
     <action name="GPS_FIELD_ROTATE_90" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_EAST" category="VEHICLE" />
+    <action name="GPS_FIELD_ROTATE_WEST" category="VEHICLE" />
   </actions>
   <inputBinding>
     <actionBinding action="GPS_FIELD_POWER_TOGGLE">
@@ -43,8 +92,17 @@
     <actionBinding action="GPS_FIELD_MENU_TOGGLE">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_m" />
     </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_MODE">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_ralt KEY_w" />
+    </actionBinding>
     <actionBinding action="GPS_FIELD_ROTATE_90">
       <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_r" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_EAST">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_j" />
+    </actionBinding>
+    <actionBinding action="GPS_FIELD_ROTATE_WEST">
+      <binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_n" />
     </actionBinding>
   </inputBinding>
   <extraSourceFiles>
@@ -52,10 +110,14 @@
     <sourceFile filename="scripts/GPSDisplaySettings.lua" />
     <sourceFile filename="scripts/GPSLineVisuals.lua" />
     <sourceFile filename="scripts/Logger.lua" />
+    <sourceFile filename="scripts/GPSVehicleEquipment.lua" />
+    <sourceFile filename="scripts/GPSTachoStatus.lua" />
     <sourceFile filename="scripts/VehicleDetector.lua" />
+    <sourceFile filename="scripts/GPSAttachmentClassifier.lua" />
     <sourceFile filename="scripts/ImplementDetector.lua" />
     <sourceFile filename="scripts/ABLineManager.lua" />
     <sourceFile filename="scripts/GPSCourseManager.lua" />
+    <sourceFile filename="scripts/GPSFarmCourseEvent.lua" />
     <sourceFile filename="scripts/GPSAutoMirror.lua" />
     <sourceFile filename="scripts/GPSDeviceOffsetProbe.lua" />
     <sourceFile filename="scripts/GPSDeviceOffsetAuto.lua" />
@@ -65,6 +127,7 @@
     <sourceFile filename="scripts/ABPreviewRenderer.lua" />
     <sourceFile filename="scripts/SteeringDiagnostics.lua" />
     <sourceFile filename="scripts/SteeringController.lua" />
+    <sourceFile filename="scripts/GPSMenuTheme.lua" />
     <sourceFile filename="scripts/GPSMenu.lua" />
     <sourceFile filename="scripts/GPSMenuSymbols.lua" />
         <sourceFile filename="scripts/GPSMenuPage1.lua" />

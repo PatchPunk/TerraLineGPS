@@ -4,10 +4,11 @@ GPSVehicleDetector = {}
 
 local function safeCall(object, methodName)
     if object == nil then return nil end
-    local okMethod, fn = pcall(function() return object[methodName] end)
-    if not okMethod or type(fn) ~= "function" then return nil end
-    local ok, result = pcall(fn, object)
-    if ok and result ~= nil and result ~= false then return result end
+    local fn = object[methodName]
+    if type(fn) ~= "function" then return nil end
+    -- Kein stilles Abfangen: Fehler einer Fahrzeug-API bleiben im LS25-Log sichtbar.
+    local result = fn(object)
+    if result ~= nil and result ~= false then return result end
     return nil
 end
 

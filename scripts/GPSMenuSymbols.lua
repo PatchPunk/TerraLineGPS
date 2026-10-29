@@ -36,8 +36,13 @@ local function drawImage(s,id,centerX,top,h,key)
         local x=centerX-w*.5
         local px=s.pageX+x*s.pageW
         local py=s.pageY+(1-top-h)*s.pageH
-        local ok,created=pcall(Overlay.new,modDir..filename,px,py,w*s.pageW,h*s.pageH)
-        if not ok or not created then
+        local iconPath=modDir..filename
+        if type(fileExists)=="function" and not fileExists(iconPath) then
+            s.terraIconFailed[key]=true
+            return false
+        end
+        local created=Overlay.new(iconPath,px,py,w*s.pageW,h*s.pageH)
+        if not created then
             s.terraIconFailed[key]=true
             return false
         end
@@ -102,7 +107,7 @@ end
 function GPSMenuSymbols.onClose(s)
     if not s then return end
     for _,o in pairs(s.terraIconOverlays or {}) do
-        if o and type(o.delete)=="function" then pcall(o.delete,o) end
+        if o and type(o.delete)=="function" then o:delete() end
     end
     s.terraIconOverlays=nil
     s.terraIconFailed=nil

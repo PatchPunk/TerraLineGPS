@@ -1,15 +1,13 @@
-# Private Freigabe-Checkliste
+# Release checklist v1.0.0.0 – 29.10.2026
 
-- [x] Gewünschter Ausgangsstand v0.9.9.43 gesichert.
-- [x] Quellstruktur für privaten GitHub-Import vorbereitet.
-- [x] Status der Code-/Grafik-/Soundrechte dokumentiert (offene Punkte bleiben offen).
-- [x] Wiederholbaren Mod-ZIP-Build und statische Strukturprüfung bereitgestellt.
-- [ ] Repository auf GitHub mit Sichtbarkeit **Private** angelegt und gepusht.
-- [ ] GitHub-Benutzerzugriff / Mitarbeiterrechte geprüft.
-- [ ] v0.9.9.44 im laufenden LS25 getestet (Code wurde funktional nicht verändert).
-- [ ] Rechte sämtlicher Audio- und Bilddateien nachvollziehbar geklärt.
-- [ ] Für öffentliche Weitergabe: Lizenz gewählt und rechtlich geprüft.
-- [ ] Für ModHub: offizieller GIANTS TestRunner, Regelprüfung und Screenshots.
+- [x] Developer-approved Phase 18 singleplayer gameplay
+- [x] GIANTS TestRunner Phase 18: 15/15 PASS, no warnings
+- [x] Client + dedicated server, farm-bound course requests, steering
+- [x] Course loads after server restart (developer-confirmed)
+- [x] Course deletion persists after restart (developer-confirmed)
+- [ ] Two simultaneous players tested (NOT YET)
+- [ ] GitHub `main` updated from v0.9.9.44, verified online
+- [ ] GitHub public visibility and v1.0.0 pre-release published
+- [ ] FBM existing file entry updated, link/download verified
 
-**Nicht vergessen:** Niemals Spielstände, Logs mit lokalen Pfaden, Passwörter,
-Tokens oder private Debug-Daten versehentlich ins Repository committen.
+Scope: FBM + GitHub only. GIANTS ModHub submission intentionally postponed.

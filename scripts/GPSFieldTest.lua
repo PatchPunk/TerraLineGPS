@@ -1,76 +1,38 @@
--- TerraLine GPS | Interne Projektmarke: Hallo hier bin ich, der CODE! | TL-GPS/2026-10-12
+-- TerraLine GPS | PatchPunk Public Beta | 2026-10-12
 -- TerraLine GPS v0.9.9.23: user-defined A/B only; independent of farmland.
-local GPS_MOD_DIRECTORY = g_currentModDirectory
-GPSFieldTest = {isLoaded=false,masterEnabled=true,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
+GPSFieldTest = {isLoaded=false,masterEnabled=false,clock=0,totalMs=0,status="Start",vehicleStatus="-",currentVehicle=nil,
  keyRegistered=false,keyRetry=0,keyABRegistered=false,keyABRetry=0,keyPressedAB=false,
  keyPressedAssist=false,lastActionAt=-9999,keyboardDiagnosticDone=false}
 
--- Short activation cue; optional if the sound API is unavailable in this game build.
-function GPSFieldTest:loadActivationBeep()
-    if self.activationBeepSample~=nil then return end
-    if type(createSample)~="function" or type(loadSample)~="function" then
-        GPSLogger.info("GPS Piepton: Audio-Sample-API nicht verfuegbar")
-        return
+-- Play the actual FS25 automatic-steering sounds already loaded for the locally
+-- controlled vehicle. GIANTS owns these samples: do not load, delete, or change
+-- them here. Never enable the built-in steering merely to play its audio.
+local function playNativeSteeringSample(isEngage)
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle
+        and GPSVehicleDetector.getCurrentVehicle()
+    -- Only locally controlled vehicle audio; never sound an empty server.
+    if vehicle==nil or vehicle.isClient==false then return false end
+    local spec=vehicle.spec_aiAutomaticSteering
+    local samples=spec and spec.samples
+    local name=isEngage and "engage" or "disengage"
+    local sample=samples and samples[name]
+    if sample==nil then
+        GPSLogger.info("GPS Sound: GIANTS "..name.." fuer aktuelles Fahrzeug nicht verfuegbar")
+        return false
     end
-    local ok,sample=pcall(createSample,"GPSFieldTestActivation")
-    if not ok or sample==nil then
-        GPSLogger.info("GPS Piepton: Sample konnte nicht erstellt werden")
-        return
+    if g_soundManager==nil or type(g_soundManager.playSample)~="function" then
+        GPSLogger.info("GPS Sound: GIANTS SoundManager nicht verfuegbar")
+        return false
     end
-    local modDir=GPS_MOD_DIRECTORY or g_currentModDirectory or (g_modsDirectory and (g_modsDirectory.."FS25_GPSFieldTest_v0_9_6_2/"))
-    if not modDir then
-        if type(delete) == "function" then pcall(delete,sample) end
-        GPSLogger.info("GPS Piepton: Modpfad nicht verfuegbar")
-        return
-    end
-    local loaded,success=pcall(loadSample,sample,modDir.."sounds/gpsActivate.wav",false)
-    if not loaded or success==false then
-        if type(delete) == "function" then pcall(delete,sample) end
-        GPSLogger.info("GPS Piepton: Laden fehlgeschlagen: "..tostring(success))
-        return
-    end
-    self.activationBeepSample=sample
-    GPSLogger.info("GPS Piepton: Sample geladen")
+    -- The engine's sound manager is available; do not hide runtime errors.
+    g_soundManager:playSample(sample)
+    return true
 end
 function GPSFieldTest:playActivationBeep()
-    if not self.activationBeepSample then self:loadActivationBeep() end
-    if not self.activationBeepSample or type(playSample)~="function" then
-        GPSLogger.info("GPS Piepton: Wiedergabe nicht verfuegbar")
-        return
-    end
-    local ok,err=pcall(playSample,self.activationBeepSample,1,1,0,0,0)
-    if not ok then GPSLogger.info("GPS Piepton: Wiedergabefehler: "..tostring(err)) end
-end
-function GPSFieldTest:unloadActivationBeep()
-    if self.activationBeepSample~=nil and type(delete)=="function" then pcall(delete,self.activationBeepSample) end
-    self.activationBeepSample=nil
-end
-
--- Separate, lower-pitched acknowledgement when the GPS controller disengages.
-function GPSFieldTest:loadDeactivationBeep()
-    if self.deactivationBeepSample~=nil then return end
-    if type(createSample)~="function" or type(loadSample)~="function" then return end
-    local ok,sample=pcall(createSample,"GPSFieldTestDeactivation")
-    if not ok or sample==nil then return end
-    local modDir=GPS_MOD_DIRECTORY or g_currentModDirectory
-    if not modDir then
-        if type(delete)=="function" then pcall(delete,sample) end
-        return
-    end
-    local loaded,success=pcall(loadSample,sample,modDir.."sounds/gpsDeactivate.wav",false)
-    if not loaded or success==false then
-        if type(delete)=="function" then pcall(delete,sample) end
-        GPSLogger.info("GPS AUS-Ton: Sample konnte nicht geladen werden")
-        return
-    end
-    self.deactivationBeepSample=sample
-    GPSLogger.info("GPS AUS-Ton: Sample geladen")
+    return playNativeSteeringSample(true)
 end
 function GPSFieldTest:playDeactivationBeep()
-    if not self.deactivationBeepSample then self:loadDeactivationBeep() end
-    if not self.deactivationBeepSample or type(playSample)~="function" then return end
-    local ok,err=pcall(playSample,self.deactivationBeepSample,1,1,0,0,0)
-    if not ok then GPSLogger.info("GPS AUS-Ton: Wiedergabefehler: "..tostring(err)) end
+    return playNativeSteeringSample(false)
 end
 function GPSFieldTest:syncAssistAudio()
     local active=GPSSteeringController.enabled==true
@@ -92,9 +54,16 @@ function GPSFieldTest:syncAssistAudio()
 end
 
 function GPSFieldTest:loadMap()
+    -- Every map session begins with the public-release logging policy.
+    -- Diagnostics are enabled explicitly in the developer page or server console.
+    if GPSConfig then GPSConfig.showDiagnostics=false end
     self.isLoaded=true
-    -- Master switch defaults to ON for each game session. Never clear A/B or courses on toggle.
-    self.masterEnabled=true
+    -- TerraLine stays OFF until the player explicitly enables it (Alt+T/menu).
+    -- The saved course database is available to the menu even while OFF.
+    self.masterEnabled=false
+    self.powerByFarm={} -- Kept for transition diagnostics.
+    self.powerByVehicle=setmetatable({},{__mode="k"})
+    self.lastPowerVehicle=nil
     self.defaultPowerHotkeyHeld=false
     self.lastPowerToggleAt=-9999
     if GPSCourseManager then GPSCourseManager.reset() end
@@ -104,10 +73,21 @@ function GPSFieldTest:loadMap()
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
     self.shiftHeld=nil
+    self.assistHeld=nil
+    self.rotateHeld=nil
+    self.angleMode=false
+    self.defaultAngleModeHeld=false;self.lastAngleModeAt=-9999
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     self.menuFallbackNotice=false
     self.clock=0; self.totalMs=0; self.status="A/B bereit";self.vehicleStatus="-"
     self.currentVehicle=nil
     self.registeredOnce_AB=nil;self.registeredOnce_ASSIST=nil;self.inputRegistrationWarning=nil
+    -- Never carry a previous savegame's unsaved A/B line into a new map.
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then
+        GPSImplementDetector.override=nil
+        if GPSImplementDetector.resetCombo then GPSImplementDetector.resetCombo() end
+    end
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Aus")
     -- Optional modules may fail independently; do not block game update/input.
     self.autoMirrorFaulted=false
@@ -128,21 +108,29 @@ function GPSFieldTest:loadMap()
         GPSLogger.info("WARNUNG: Geraeteversatz-Messmodul fehlt")
     end
     self.keyRegistered=false;self.keyABRegistered=false;self.keyRetry=0;self.lastKeyDiagnostic=nil
-    GPSLogger.info("v0.9.8.5 gestartet: frei belegbare Eingaben A/B und GPS, EIN/AUS-Ton")
+    GPSLogger.info("v"..tostring(GPSConfig.version).." gestartet: frei belegbare Eingaben A/B und GPS, GIANTS GPS EIN/AUS-Sounds")
     self.lastAssistAudioState=false
     self.assistLinesActivatedAtMs=nil
-    self:loadActivationBeep()
-    self:loadDeactivationBeep()
 end
 function GPSFieldTest:deleteMap()
+    if GPSLineVisuals and GPSLineVisuals.cleanup then GPSLineVisuals.cleanup() end
     GPSSteeringDiagnostics.stop("Karte verlassen")
     self.keyRegistered=false;self.keyABRegistered=false
-    self:unloadActivationBeep()
-    if self.deactivationBeepSample~=nil and type(delete)=="function" then pcall(delete,self.deactivationBeepSample) end
-    self.deactivationBeepSample=nil;self.lastAssistAudioState=nil;self.assistLinesActivatedAtMs=nil
+    self.lastAssistAudioState=nil;self.assistLinesActivatedAtMs=nil
     if GPSCourseManager then GPSCourseManager.reset() end
+    if GPSABLineManager then GPSABLineManager.clear() end
+    if GPSImplementDetector then
+        GPSImplementDetector.override=nil
+        if GPSImplementDetector.resetCombo then GPSImplementDetector.resetCombo() end
+    end
     if GPSDisplaySettings then GPSDisplaySettings.reset() end
-    self.isLoaded=false;self.masterEnabled=true;self.currentVehicle=nil;self.shiftHeld=nil
+    self.isLoaded=false;self.masterEnabled=false;
+        self.powerByFarm={};self.powerByVehicle=nil;
+        self.lastPowerVehicle=nil;self.currentVehicle=nil;
+        self.shiftHeld=nil;self.assistHeld=nil;
+        self.rotateHeld=nil;self.angleMode=false;
+        self.defaultAngleModeHeld=false
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     self.defaultPowerHotkeyHeld=false
     self.defaultShiftRightHeld=false;self.defaultShiftLeftHeld=false
     GPSTrackGenerator.reset();GPSTrackPosition.reset();GPSSteeringController.stop("Karte verlassen")
@@ -164,8 +152,9 @@ local function getNativeGpsLaneText()
     end
     local index=GPSTrackPosition.track
     if type(index)~="number" then return "GPS" end
-    local number=index>=0 and index+1 or index-1
-    return "GPS "..tostring(number)
+    local shownTrack=GPSSteeringController and GPSSteeringController.enabled and GPSSteeringController.lockedTrack or index
+    local number=GPSTrackPosition.getDisplayNumber(shownTrack)
+    return number and ("GPS "..tostring(number)) or "GPS"
 end
 
 function GPSFieldTest:installNativeHudBridge()
@@ -178,7 +167,8 @@ function GPSFieldTest:installNativeHudBridge()
         local vehicle=display and display.vehicle
         local ownVehicle=GPSVehicleDetector.getCurrentVehicle()
         -- Stay strictly inside the controlled vehicle's native speedometer.
-        local bridge=GPSFieldTest.masterEnabled~=false and vehicle~=nil and ownVehicle==vehicle
+        local bridge=GPSFieldTest.masterEnabled==true and vehicle~=nil and ownVehicle==vehicle
+            and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
             and GPSABLineManager.b~=nil
             and type(vehicle.getAIAutomaticSteeringState)=="function"
             and type(vehicle.getAIModeSelection)=="function"
@@ -211,14 +201,22 @@ function GPSFieldTest:installNativeHudBridge()
             display.aiActiveText=label
         end
 
-        local ok,err=pcall(originalDraw,display,...)
+        -- Keep the native HUD draw intact; on normal return restore every
+        -- temporary accessor and label exactly as in the previous build.
+        -- Engine failures are no longer hidden and remain visible in log.txt.
+        originalDraw(display,...)
         if bridge then
             rawset(vehicle,"getAIAutomaticSteeringState",oldSteeringAccessor)
             rawset(vehicle,"getAIModeSelection",oldModeAccessor)
             display.aiReadyText=oldReadyText
             display.aiActiveText=oldActiveText
         end
-        if not ok then error(err) end
+        -- Equipment indicator stays visible when the hardware is fitted but
+        -- the GPS master is OFF. It is drawn inside this native display only.
+        if vehicle~=nil and ownVehicle==vehicle and GPSTachoStatus
+                and type(GPSTachoStatus.draw)=="function" then
+            GPSTachoStatus.draw(display,vehicle)
+        end
     end
     GPSLogger.info("GIANTS Tacho GPS integration ready (native symbol, GPS + lane number)")
 end
@@ -237,11 +235,10 @@ function GPSFieldTest:pollDefaultMenuHotkey()
     if type(k)~="table" or type(k.isKeyPressed)~="function" or not k.KEY_m or not k.KEY_lalt then
         return
     end
-    local ok,pressed=pcall(function()
-        local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
-        return alt and k.isKeyPressed(k.KEY_m)
-    end)
-    if not ok then return end
+    -- Input and the required default bindings are already validated above.
+    -- Read the key state directly so genuine engine errors remain visible.
+    local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+    local pressed=alt and k.isKeyPressed(k.KEY_m)
     local wasPressed=self.defaultMenuHotkeyHeld==true
     self.defaultMenuHotkeyHeld=pressed==true
     if pressed and not wasPressed then
@@ -268,12 +265,11 @@ function GPSFieldTest:pollDefaultShiftHotkeys()
         self.shiftHeld=nil
         return
     end
-    local ok,right,left=pcall(function()
-        local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
-        return alt and k.KEY_pageup and k.isKeyPressed(k.KEY_pageup) or false,
-               alt and k.KEY_pagedown and k.isKeyPressed(k.KEY_pagedown) or false
-    end)
-    if not ok then return end
+    -- The Input API has already been checked above. Direct key queries
+    -- preserve both shortcut states and expose actual engine errors in log.txt.
+    local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+    local right=alt and k.KEY_pageup and k.isKeyPressed(k.KEY_pageup) or false
+    local left=alt and k.KEY_pagedown and k.isKeyPressed(k.KEY_pagedown) or false
     if right and not self.defaultShiftRightHeld then
         if not (self.shiftHeld and self.shiftHeld.direction==1) then
             GPSLogger.info("GPS Alt+Bild HOCH erkannt (Tastatur-Fallback)")
@@ -294,34 +290,151 @@ function GPSFieldTest:pollDefaultShiftHotkeys()
     self.defaultShiftLeftHeld=left
 end
 
+-- Use the physically RIGHT Alt key (AltGr on some layouts) with W.
+-- The game's action event can be missing on certain keyboard layouts;
+-- the edge-triggered fallback shares a debounce with the native callback.
+function GPSFieldTest:toggleAngleMode()
+    if not self:isMasterEnabled() then return false,"TerraLine GPS AUS" end
+    if (g_gui and g_gui.currentGui~=nil) or (GPSMenu and GPSMenu.isOpen()) then return false,"Menue geoeffnet" end
+    local vehicle=GPSVehicleDetector.getCurrentVehicle()
+    if not vehicle then return false,"Kein Traktor ausgewaehlt" end
+    local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+    if speed>2 then return false,"Spurwinkelmodus nur im Stillstand" end
+    if not (GPSABLineManager.a and GPSABLineManager.b) then return false,"Zuerst A/B-Linie erstellen" end
+    self.angleMode=not (self.angleMode==true)
+    self.rotateHeld=nil
+    local state=self.angleMode and "EIN (Alt+J/N je 0,1 Grad)" or "AUS"
+    GPSLogger.info("GPS SPURWINKEL-MODUS "..state.." | Drehpunkt: Traktormitte")
+    return true,state
+end
+function GPSFieldTest:pollDefaultAngleModeHotkey()
+    local k=Input
+    if type(k)~="table" or type(k.isKeyPressed)~="function" or not k.KEY_ralt or not k.KEY_w then return end
+    -- The keyboard API and the required key IDs are checked above. Let real
+    -- engine errors appear in log.txt instead of hiding them via pcall.
+    local pressed=k.isKeyPressed(k.KEY_ralt) and k.isKeyPressed(k.KEY_w)
+    local was=self.defaultAngleModeHeld==true
+    self.defaultAngleModeHeld=pressed==true
+    if pressed and not was then self:onAngleModeKey(nil,1) end
+end
+function GPSFieldTest:onAngleModeKey(actionName,inputValue,callbackState,isAnalog)
+    if inputValue~=nil and inputValue<=0.5 then return end
+    local now=self.totalMs or 0
+    if now-(self.lastAngleModeAt or -9999)<450 then return end
+    self.lastAngleModeAt=now
+    local ok,msg=self:toggleAngleMode()
+    if not ok then GPSLogger.info("GPS Spurwinkelmodus: "..tostring(msg)) end
+end
+
+-- Keyboard fallback for Alt+J/Alt+N, so the default shortcuts still work
+-- when GIANTS does not fire the action events for a particular key layout.
+function GPSFieldTest:pollDefaultRotationHotkeys()
+    local k=Input
+    if type(k)~="table" or type(k.isKeyPressed)~="function" or not k.KEY_lalt then return end
+    if g_gui and g_gui.currentGui~=nil then
+        self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
+        self.rotateHeld=nil
+        return
+    end
+    -- Input and isKeyPressed have already been checked. Keep the existing
+    -- one-press/hold behavior, but allow native key-read errors to reach log.txt.
+    local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+    local east=(alt and k.KEY_j and k.isKeyPressed(k.KEY_j))==true
+    local west=(alt and k.KEY_n and k.isKeyPressed(k.KEY_n))==true
+    if east and west then east=false;west=false end -- contradictory controls
+    if east and not self.defaultRotateEastHeld then
+        if not (self.rotateHeld and self.rotateHeld.direction==1) then
+            GPSLogger.info("GPS Alt+J: Feindrehung Richtung 90 Grad (Fallback)")
+            self:onRotateKey(1,1)
+        end
+    elseif not east and self.defaultRotateEastHeld then
+        self:onRotateKey(1,0)
+    end
+    if west and not self.defaultRotateWestHeld then
+        if not (self.rotateHeld and self.rotateHeld.direction==-1) then
+            GPSLogger.info("GPS Alt+N: Feindrehung Richtung 270 Grad (Fallback)")
+            self:onRotateKey(-1,1)
+        end
+    elseif not west and self.defaultRotateWestHeld then
+        self:onRotateKey(-1,0)
+    end
+    self.defaultRotateEastHeld=east
+    self.defaultRotateWestHeld=west
+end
+
 -- Master power is separate from Alt+X. The GPS menu stays accessible when powered OFF.
 function GPSFieldTest:isMasterEnabled()
-    return self.masterEnabled~=false
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    return self.masterEnabled==true and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
+end
+-- Keeping a power state PER VEHICLE prevents another tractor from inheriting
+-- GPS ON when the player changes vehicles or farms in a multiplayer game.
+function GPSFieldTest:syncPowerForVehicle(vehicle)
+    -- Workbench changes can remove equipment without switching vehicles.
+    -- Immediately release steering even in this case.
+    if self.lastPowerVehicle==vehicle then
+        if self.masterEnabled and not (GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)) then
+            self.masterEnabled=false
+            GPSSteeringController.stop("TerraLine in Werkstatt ausgebaut")
+        end
+        return
+    end
+    self.lastPowerVehicle=vehicle
+    self.angleMode=false;self.rotateHeld=nil
+    local enabled=vehicle and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)
+        and self.powerByVehicle and self.powerByVehicle[vehicle]==true or false
+    if self.masterEnabled~=enabled then
+        self.masterEnabled=enabled
+        GPSSteeringController.stop("Fahrzeugwechsel: GPS-Lenkung aus")
+        if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("Fahrzeugwechsel") end
+        self.assistLinesActivatedAtMs=nil
+        self.shiftHeld=nil;self.assistHeld=nil;self.rotateHeld=nil;self.angleMode=false
+    end
+end
+function GPSFieldTest:syncPowerForFarm(farmId)
+    -- A farm change must never copy the power state from another farm.
+    -- The state is restored from the actually controlled vehicle next tick.
+    self.masterEnabled=false
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    if vehicle and self.powerByVehicle then self.powerByVehicle[vehicle]=false end
+    self.lastPowerVehicle=nil
+    GPSSteeringController.stop("Hofwechsel: GPS-Lenkung aus")
+    self.assistLinesActivatedAtMs=nil
+    GPSLogger.info("HAUPTSCHALTER: Hofwechsel zu "..tostring(farmId or "-").." | Fahrzeugausstattung wird geprueft")
 end
 function GPSFieldTest:setMasterEnabled(enabled)
     enabled=enabled==true
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    if not (vehicle and GPSVehicleEquipment and GPSVehicleEquipment.isInstalled(vehicle)) then
+        self.masterEnabled=false
+        GPSSteeringController.stop("TerraLine GPS nicht eingebaut")
+        return "TerraLine GPS: Fahrzeug ohne GPS-Ausstattung (Shop/Werkstatt +10.000 EUR)"
+    end
+    local farmId=GPSCourseManager and GPSCourseManager.getFarmId and GPSCourseManager.getFarmId()
+    if not farmId then return "TerraLine GPS: erst einem Hof beitreten" end
+    self.powerByVehicle=self.powerByVehicle or setmetatable({},{__mode="k"})
+    self.powerByVehicle[vehicle]=enabled
+    self.lastPowerVehicle=vehicle
     if self.masterEnabled==enabled then
         return "TerraLine GPS "..(enabled and "EIN" or "AUS")
     end
     self.masterEnabled=enabled
-    self.shiftHeld=nil
+    self.shiftHeld=nil;self.rotateHeld=nil;self.angleMode=false;self.defaultAngleModeHeld=false
     self.defaultShiftRightHeld=false
     self.defaultShiftLeftHeld=false
+    self.defaultRotateEastHeld=false;self.defaultRotateWestHeld=false
     if not enabled then
-        -- Immediately release ALL active steering/diagnostic commands;
-        -- keep A/B, course manager, widths and stored device corrections intact.
         GPSSteeringController.stop("TerraLine Hauptschalter AUS")
         if GPSSteeringDiagnostics then GPSSteeringDiagnostics.stop("TerraLine GPS AUS") end
         self:syncAssistAudio()
         self.assistLinesActivatedAtMs=nil
         if GPSAutoMirror then GPSAutoMirror.reset() end
     else
-        -- Turning power on NEVER arms steering automatically.
         GPSSteeringController.stop("TerraLine bereit (Lenkung aus)")
         if GPSTrackPosition then GPSTrackPosition.lastUpdate=150 end
         if GPSAutoMirror then GPSAutoMirror.reset() end
     end
-    local msg="TerraLine GPS "..(enabled and "EIN - Lenkung bleibt AUS" or "AUS - Lenkung, Linien und Tacho-Einblendung deaktiviert")
+    local msg="TerraLine GPS "..(enabled and "EIN - Lenkung bleibt AUS" or "AUS")
     GPSLogger.info("HAUPTSCHALTER: "..msg)
     return msg
 end
@@ -341,11 +454,10 @@ function GPSFieldTest:pollDefaultPowerHotkey()
         self.defaultPowerHotkeyHeld=false
         return
     end
-    local ok,pressed=pcall(function()
-        return (k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt)))
-            and k.isKeyPressed(k.KEY_t)
-    end)
-    if not ok then return end
+    -- Input and the required default bindings are already validated above.
+    -- Read the key state directly so genuine engine errors remain visible.
+    local alt=k.isKeyPressed(k.KEY_lalt) or (k.KEY_ralt and k.isKeyPressed(k.KEY_ralt))
+    local pressed=alt and k.isKeyPressed(k.KEY_t)
     local was=self.defaultPowerHotkeyHeld==true
     self.defaultPowerHotkeyHeld=pressed==true
     if pressed and not was then
@@ -370,8 +482,15 @@ function GPSFieldTest:update(dt)
     if not self.isLoaded then return end
     self:installNativeHudBridge()
     self:pollDefaultMenuHotkey()
+    self:syncPowerForVehicle(GPSVehicleDetector.getCurrentVehicle())
     self:pollDefaultPowerHotkey()
-    if GPSCourseManager then GPSCourseManager.ensureLoaded() end
+    if GPSCourseManager then
+        GPSCourseManager.ensureLoaded()
+        if g_server~=nil and GPSCourseManager.installSaveHook then GPSCourseManager.installSaveHook() end
+        -- Required on host and clients, including while TerraLine power is OFF.
+        if GPSCourseManager.watchLocalFarm then GPSCourseManager.watchLocalFarm() end
+        if GPSCourseManager.pollNetwork then GPSCourseManager.pollNetwork(dt) end
+    end
     if GPSMenu and not GPSMenu.registered and (self.totalMs or 0)>=(self.nextMenuRegisterAttempt or 0) then
         self.nextMenuRegisterAttempt=(self.totalMs or 0)+5000
         GPSMenu.register()
@@ -383,11 +502,24 @@ function GPSFieldTest:update(dt)
         self:registerAction("MENU")
     end
     if not self:isMasterEnabled() then
-        self.shiftHeld=nil
+        self.shiftHeld=nil;self.assistHeld=nil;self.rotateHeld=nil;self.angleMode=false
         self.totalMs=self.totalMs+(dt or 0)
         return
     end
+    self:pollDefaultAngleModeHotkey()
     self:pollDefaultShiftHotkeys()
+    self:pollDefaultRotationHotkeys()
+    -- Alt+X: a short release retains the established ON/OFF action;
+    -- a 3-second hold resets only lane DISPLAY numbering, not A/B geometry.
+    if self.assistHeld then
+        local held=self.assistHeld
+        if (g_gui and g_gui.currentGui~=nil) or (GPSMenu and GPSMenu.isOpen()) then
+            self.assistHeld=nil
+        elseif not held.triggered and (self.totalMs or 0)-held.startedAt>=3000 then
+            held.triggered=true
+            self:commandResetLaneNumbering()
+        end
+    end
     -- Continuous fine adjustment: one centimetre on press, then slow auto-repeat.
     -- A release event clears held direction; no steering state is changed.
     if g_gui and g_gui.currentGui~=nil then
@@ -405,16 +537,69 @@ function GPSFieldTest:update(dt)
             repeats=repeats+1
         end
     end
+    -- Fine rotation: one 0.1-degree click in angle mode, then accelerating repeats.
+    -- Use the same 380 ms delay/acceleration as the existing shift controls.
+    if g_gui and g_gui.currentGui~=nil then
+        self.rotateHeld=nil
+    elseif self.rotateHeld then
+        local vehicle=GPSVehicleDetector.getCurrentVehicle()
+        local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+        if not self.angleMode or speed>2 then
+            self.rotateHeld=nil
+            if speed>2 and self.angleMode then
+                self.angleMode=false
+                GPSLogger.info("GPS SPURWINKEL-MODUS AUS: Fahrzeug faehrt")
+            end
+        end
+    end
+    if self.rotateHeld then
+        local held=self.rotateHeld
+        held.elapsed=held.elapsed+(dt or 0)
+        local repeats=0
+        -- Bound elapsed processing to avoid many full course recomputations
+        -- in one frame. Total angular motion stays deterministic per repeat.
+        while held.elapsed>=held.nextAt and repeats<8 do
+            local ok,msg=self:commandRotateFine(held.direction,true)
+            if not ok then
+                GPSLogger.info("GPS Feindrehung gestoppt: "..tostring(msg))
+                self.rotateHeld=nil
+                break
+            end
+            local heldSeconds=held.nextAt/1000
+            held.nextAt=held.nextAt+math.max(25,140-30*math.max(0,heldSeconds-0.38))
+            repeats=repeats+1
+        end
+    end
+    if self.angleMode and not self.rotateHeld then
+        local vehicle=GPSVehicleDetector.getCurrentVehicle()
+        local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
+        if speed>2 then
+            self.angleMode=false
+            GPSLogger.info("GPS SPURWINKEL-MODUS AUS: Fahrzeug faehrt")
+        end
+    end
     -- FS25 rebuilds action events regularly; register within update, not just once.
     -- All assignments come from the game's inputBinding settings (keyboard/gamepad).
+    if g_gui and g_gui.currentGui~=nil then
+        self.angleMode=false;self.rotateHeld=nil
+    end
     if not (g_gui and g_gui.currentGui~=nil) then
         self:registerAction("ASSIST")
         self:registerAction("AB")
         self:registerAction("SHIFT_RIGHT")
         self:registerAction("SHIFT_LEFT")
         self:registerAction("ROTATE")
+        self:registerAction("ROTATE_MODE")
+        self:registerAction("ROTATE_EAST")
+        self:registerAction("ROTATE_WEST")
     end
     GPSSteeringDiagnostics.update(dt)
+    -- Stable combination widths are sampled only while stopped/steering OFF.
+    -- Read them before regenerating A/B lanes; never change width mid-steering.
+    if not self.implementWidthFaulted and GPSImplementDetector
+            and type(GPSImplementDetector.update)=="function" then
+        GPSImplementDetector.update(dt,GPSVehicleDetector.getCurrentVehicle())
+    end
     if GPSABLineManager.a and GPSABLineManager.b then
         local vehicle=GPSVehicleDetector.getCurrentVehicle()
         local width=GPSImplementDetector.getWidth(vehicle)
@@ -432,12 +617,7 @@ function GPSFieldTest:update(dt)
             self.autoMirrorFaulted=true
             GPSLogger.info("WARNUNG: Auto-Wende deaktiviert (update-Funktion fehlt)")
         else
-            local ok,err=pcall(GPSAutoMirror.update,dt,optionalVehicle)
-            if not ok then
-                self.autoMirrorFaulted=true
-                GPSAutoMirror.enabled=false
-                GPSLogger.info("WARNUNG: Auto-Wende wegen Laufzeitfehler deaktiviert: "..tostring(err))
-            end
+            GPSAutoMirror.update(dt,optionalVehicle)
         end
     end
     if not self.deviceOffsetFaulted then
@@ -445,23 +625,18 @@ function GPSFieldTest:update(dt)
             self.deviceOffsetFaulted=true
             GPSLogger.info("WARNUNG: Geraeteversatz-Messung deaktiviert (update-Funktion fehlt)")
         else
-            local ok,err=pcall(GPSDeviceOffsetProbe.update,dt,optionalVehicle)
-            if not ok then
-                self.deviceOffsetFaulted=true
-                GPSLogger.info("WARNUNG: Geraeteversatz-Messung nach Fehler deaktiviert: "..tostring(err))
-            end
+            GPSDeviceOffsetProbe.update(dt,optionalVehicle)
         end
     end
     -- Apply only safe, stable implement offsets while stopped with steering OFF.
-    if not self.deviceAutoFaulted and type(GPSDeviceOffsetAuto)=="table" and type(GPSDeviceOffsetAuto.update)=="function" then
-        local ok,err=pcall(GPSDeviceOffsetAuto.update,dt,optionalVehicle)
-        if not ok then
-            self.deviceAutoFaulted=true
-            GPSDeviceOffsetAuto.enabled=false
-            GPSLogger.info("WARNUNG: Geraete-Auto deaktiviert: "..tostring(err))
-        end
+    if not self.deviceAutoFaulted and type(GPSDeviceOffsetAuto)=="table"
+            and type(GPSDeviceOffsetAuto.update)=="function" then
+        GPSDeviceOffsetAuto.update(dt,optionalVehicle)
     end
     GPSTrackPosition.update(dt,GPSVehicleDetector.getCurrentVehicle())
+    if GPSSteeringController.updateNetworkSteering then
+        GPSSteeringController.updateNetworkSteering(dt,GPSVehicleDetector.getCurrentVehicle())
+    end
     self.totalMs=self.totalMs+(dt or 0)
     self.clock=self.clock+(dt or 0)
     if self.clock<GPSConfig.checkIntervalMs then return end
@@ -483,7 +658,9 @@ function GPSFieldTest:update(dt)
         GPSLogger.info("Aktives Fahrzeug: "..self.vehicleStatus.." ("..source..")")
         GPSImplementDetector.lastSignature=nil
     end
-    self.status=GPSABLineManager.b and "Freie A/B-Spur aktiv" or GPSABLineManager.a and "Punkt B setzen" or "Punkt A setzen"
+    self.status=GPSABLineManager.captureStage=="armed" and "A/B scharf: Alt+B setzt A"
+        or GPSABLineManager.b and "Freie A/B-Spur aktiv"
+        or GPSABLineManager.a and "Punkt B setzen" or "Alt+B: A/B scharf stellen"
 end
 -- Both DashboardLive HUD visibility actions use the native GIANTS HUD:
 --   DBL_HUDVISIBILITY_PART -> hud:setIsVisible(...)
@@ -494,10 +671,12 @@ end
 local function isGameHudVisible()
     local hud=g_currentMission and g_currentMission.hud
     if hud and type(hud.getIsVisible)=="function" then
-        local ok,visible=pcall(hud.getIsVisible,hud)
-        if ok and visible==false then return false end
+        -- The native HUD API has already been validated. Do not hide engine
+        -- errors with pcall; an explicit false alone suppresses GPS visuals.
+        local visible=hud:getIsVisible()
+        if visible==false then return false end
     end
-    -- Missing HUD/visibility API or a failed read must never break the mod.
+    -- A missing HUD or visibility method keeps the previous visible fallback.
     return true
 end
 -- Inactive GPS: setup and A/B previews are always displayed.
@@ -513,6 +692,13 @@ function GPSFieldTest:shouldDrawLines()
     return ((self.totalMs or 0)-started)<duration*1000
 end
 function GPSFieldTest:draw()
+    -- Meshes are persistent scene nodes; hide them whenever 3D GPS lines
+    -- are not drawn (power off, map/HUD hidden, timer elapsed).
+    if GPSLineVisuals and GPSLineVisuals.hide and
+            (not self.isLoaded or not self:isMasterEnabled() or
+             not isGameHudVisible() or not self:shouldDrawLines()) then
+        GPSLineVisuals.hide()
+    end
     if self.isLoaded and self:isMasterEnabled() then
         self:syncAssistAudio()
         -- Hide all self-rendered visuals: GPS tracks, A marker, A/B preview,
@@ -523,13 +709,16 @@ function GPSFieldTest:draw()
         if self:shouldDrawLines() then
             GPSTrackRenderer.draw(nil,self.currentVehicle)
             -- Optional rendering must NEVER interrupt the game update/render loop.
-            if not self.abPreviewFaulted and GPSABPreviewRenderer and GPSABPreviewRenderer.draw then
-                local ok,err=pcall(GPSABPreviewRenderer.draw,self.currentVehicle)
-                if not ok then
-                    self.abPreviewFaulted=true
-                    GPSLogger.info("A/B Vorschau deaktiviert nach Fehler: "..tostring(err))
-                end
+            if not self.abPreviewFaulted and GPSABPreviewRenderer
+                    and type(GPSABPreviewRenderer.draw)=="function" then
+                GPSABPreviewRenderer.draw(self.currentVehicle)
             end
+        end
+        -- Confirm the first Alt+B press without changing the existing GUI.
+        if GPSABLineManager.captureStage=="armed" and type(renderText)=="function" then
+            if type(setTextColor)=="function" then setTextColor(1,.72,.23,1) end
+            renderText(.37,.105,.021,"A/B SCHARF: Alt+B startet Messung")
+            if type(setTextColor)=="function" then setTextColor(1,1,1,1) end
         end
         -- Keep developer output available only when explicitly enabling diagnostics.
         if GPSConfig.showDiagnostics and type(renderText)=="function" then
@@ -538,7 +727,15 @@ function GPSFieldTest:draw()
                 GPSABLineManager.a and "A" or "-", GPSABLineManager.b and "B" or "-",width,src))
             renderText(0.02,0.83,0.013,"Anbaugeraet: "..tostring(name))
             renderText(0.02,0.808,0.013,tostring(GPSTrackGenerator.info))
-            renderText(0.02,0.786,0.015,"GPS: "..tostring(GPSTrackPosition.info))
+            local debugInfo=tostring(GPSTrackPosition.info)
+            if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled then
+                local auto=GPSDeviceOffsetAuto
+                local measured=auto.ready and type(auto.center)=="number"
+                debugInfo=debugInfo..(measured and
+                    string.format(" | Geraete-Auto Mitte %+.2f m",auto.center)
+                    or " | Geraete-Auto: Messung ausstehend")
+            end
+            renderText(0.02,0.786,0.015,"GPS: "..debugInfo)
             local steer=GPSSteeringController
             if type(setTextColor)=="function" then
                 if steer.enabled then setTextColor(0.15,1,0.28,1) else setTextColor(1,0.78,0.2,1) end
@@ -564,10 +761,15 @@ function GPSFieldTest:handleKeyAction(kind,origin)
     if kind=="MENU" then
         GPSMenu.toggle()
     elseif kind=="AB" then
-        if GPSABLineManager.a==nil or GPSABLineManager.b~=nil then
+        self.angleMode=false;self.rotateHeld=nil
+        local stage=GPSABLineManager.captureStage
+        if stage=="armed" then
             self:commandA()
-        else
+        elseif stage=="measuring" and GPSABLineManager.a~=nil and
+                GPSABLineManager.b==nil then
             self:commandB()
+        else
+            GPSLogger.info(GPSABLineManager.armCapture())
         end
     elseif kind=="ROTATE" then
         local ok,msg=GPSCourseManager.rotate90()
@@ -592,17 +794,84 @@ function GPSFieldTest:onShiftKey(direction,inputValue)
         self.shiftHeld=nil
     end
 end
+function GPSFieldTest:commandRotateFine(direction,quiet)
+    if not self:isMasterEnabled() then return false,"TerraLine GPS AUS" end
+    if GPSMenu and GPSMenu.isOpen() then return false,"Menue geoeffnet" end
+    if not self.angleMode then return false,"Spurwinkelmodus AUS (Rechts-Alt+W)" end
+    local ok,msg=GPSCourseManager.rotateAroundVehicle(direction*0.1,quiet)
+    if not quiet then GPSLogger.info("GPS Feindrehung: "..tostring(msg)) end
+    return ok,msg
+end
+function GPSFieldTest:onRotateKey(direction,inputValue)
+    if not self:isMasterEnabled() then self.rotateHeld=nil;return end
+    if (g_gui and g_gui.currentGui~=nil) or (GPSMenu and GPSMenu.isOpen()) then self.rotateHeld=nil;return end
+    if inputValue==nil then return end
+    if inputValue>0.5 then
+        if self.rotateHeld and self.rotateHeld.direction==direction then return end
+        if not self.angleMode then return end
+        local ok,msg=self:commandRotateFine(direction,false)
+        if ok then
+            self.rotateHeld={direction=direction,elapsed=0,nextAt=380}
+        else
+            self.rotateHeld=nil
+        end
+    elseif self.rotateHeld and self.rotateHeld.direction==direction then
+        self.rotateHeld=nil
+    end
+end
+function GPSFieldTest:onRotateEastKey(actionName,inputValue,callbackState,isAnalog)
+    self:onRotateKey(1,inputValue)
+end
+function GPSFieldTest:onRotateWestKey(actionName,inputValue,callbackState,isAnalog)
+    self:onRotateKey(-1,inputValue)
+end
 function GPSFieldTest:onShiftRightKey(actionName,inputValue,callbackState,isAnalog)
     self:onShiftKey(1,inputValue)
 end
 function GPSFieldTest:onShiftLeftKey(actionName,inputValue,callbackState,isAnalog)
     self:onShiftKey(-1,inputValue)
 end
+function GPSFieldTest:commandResetLaneNumbering()
+    if not self:isMasterEnabled() or (GPSMenu and GPSMenu.isOpen()) then return false end
+    local vehicle=GPSVehicleDetector.getCurrentVehicle()
+    local ok,msg=GPSTrackPosition.resetLaneNumbering(vehicle)
+    GPSLogger.info("Alt+X LANG: "..tostring(msg))
+    if ok and GPSSteeringController and GPSSteeringController.enabled and GPSSteeringController.lockedTrack~=nil then
+        local shown=GPSTrackPosition.getDisplayNumber(GPSSteeringController.lockedTrack)
+        GPSSteeringController.reason="Aktiv | Spur "..tostring(shown)
+    end
+    return ok
+end
 function GPSFieldTest:onAssistKey(actionName,inputValue,callbackState,isAnalog)
-    self:handleKeyAction("ASSIST","ActionEvent")
+    -- Unlike the previous press-only action, both key DOWN and UP are required
+    -- to distinguish a short toggle from a long hold. No toggle on long hold.
+    if inputValue==nil then
+        self:handleKeyAction("ASSIST","ActionEvent ohne Tastenzustand")
+        return
+    end
+    if inputValue>0.5 then
+        if not self.assistHeld and self:isMasterEnabled()
+            and not (g_gui and g_gui.currentGui~=nil)
+            and not (GPSMenu and GPSMenu.isOpen()) then
+            self.assistHeld={startedAt=self.totalMs or 0,triggered=false}
+        end
+    else
+        local held=self.assistHeld
+        self.assistHeld=nil
+        if held and not held.triggered then
+            if (self.totalMs or 0)-held.startedAt>=3000 then
+                self:commandResetLaneNumbering()
+            else
+                self:handleKeyAction("ASSIST","ActionEvent kurz")
+            end
+        end
+    end
 end
 function GPSFieldTest:onABKey(actionName,inputValue,callbackState,isAnalog)
-    self:handleKeyAction("AB","ActionEvent")
+    -- One step per press, not per release. Keep the shared 300ms debounce.
+    if inputValue==nil or inputValue>0.5 then
+        self:handleKeyAction("AB","ActionEvent")
+    end
 end
 function GPSFieldTest:onRotate90Key(actionName,inputValue,callbackState,isAnalog)
     if inputValue==nil or inputValue>0.5 then self:handleKeyAction("ROTATE","ActionEvent") end
@@ -619,7 +888,11 @@ function GPSFieldTest:onMenuKey(actionName,inputValue,callbackState,isAnalog)
 end
 function GPSFieldTest:registerAction(kind)
     local binding=g_inputBinding
-    local actions={AB="GPS_FIELD_AB_MARK",ASSIST="GPS_FIELD_ASSIST_TOGGLE",SHIFT_RIGHT="GPS_FIELD_SHIFT_RIGHT",SHIFT_LEFT="GPS_FIELD_SHIFT_LEFT",MENU="GPS_FIELD_MENU_TOGGLE",ROTATE="GPS_FIELD_ROTATE_90",POWER="GPS_FIELD_POWER_TOGGLE"}
+    local actions={AB="GPS_FIELD_AB_MARK",ASSIST="GPS_FIELD_ASSIST_TOGGLE",
+        SHIFT_RIGHT="GPS_FIELD_SHIFT_RIGHT",SHIFT_LEFT="GPS_FIELD_SHIFT_LEFT",
+        MENU="GPS_FIELD_MENU_TOGGLE",ROTATE="GPS_FIELD_ROTATE_90",
+        ROTATE_MODE="GPS_FIELD_ROTATE_MODE",ROTATE_EAST="GPS_FIELD_ROTATE_EAST",
+        ROTATE_WEST="GPS_FIELD_ROTATE_WEST",POWER="GPS_FIELD_POWER_TOGGLE"}
     local actionName=actions[kind]
     if not actionName then return end
     local id=InputAction and InputAction[actionName]
@@ -630,11 +903,15 @@ function GPSFieldTest:registerAction(kind)
         end
         return
     end
-    local callbacks={AB=self.onABKey,ASSIST=self.onAssistKey,SHIFT_RIGHT=self.onShiftRightKey,SHIFT_LEFT=self.onShiftLeftKey,MENU=self.onMenuKey,ROTATE=self.onRotate90Key,POWER=self.onPowerKey}
+    local callbacks={AB=self.onABKey,ASSIST=self.onAssistKey,
+        SHIFT_RIGHT=self.onShiftRightKey,SHIFT_LEFT=self.onShiftLeftKey,
+        MENU=self.onMenuKey,ROTATE=self.onRotate90Key,
+        ROTATE_MODE=self.onAngleModeKey,ROTATE_EAST=self.onRotateEastKey,
+        ROTATE_WEST=self.onRotateWestKey,POWER=self.onPowerKey}
     local callback=callbacks[kind]
-    local isShift=kind=="SHIFT_RIGHT" or kind=="SHIFT_LEFT"
-    local ok,registered,eventId=pcall(binding.registerActionEvent,binding,id,self,callback,isShift,true,false,true)
-    if ok and registered then
+    local heldAction=kind=="ASSIST" or kind=="SHIFT_RIGHT" or kind=="SHIFT_LEFT" or kind=="ROTATE_EAST" or kind=="ROTATE_WEST"
+    local registered,eventId=binding:registerActionEvent(id,self,callback,heldAction,true,false,true)
+    if registered then
         if kind=="AB" then
             self.keyABEventId=eventId
         else
@@ -645,9 +922,6 @@ function GPSFieldTest:registerAction(kind)
             GPSLogger.info(actionName.." dynamisch registriert (EventId="..tostring(eventId)..")")
             self["registeredOnce_"..kind]=true
         end
-    elseif not ok and not self["registrationError_"..kind] then
-        GPSLogger.info(actionName.." Fehler: "..tostring(registered))
-        self["registrationError_"..kind]=true
     end
 end
 
@@ -662,7 +936,7 @@ function GPSFieldTest:commandSteerReport()
     return msg
 end
 function GPSFieldTest:commandAssist()
-    if not self:isMasterEnabled() then return "TerraLine GPS AUS - erst mit Alt+T einschalten" end
+    if not self:isMasterEnabled() then return "TerraLine GPS AUS oder nicht eingebaut" end
     local vehicle=GPSVehicleDetector.getCurrentVehicle()
     -- A/B may have just been completed while stationary. Resolve a valid pass
     -- immediately rather than requiring movement or waiting for the next tick.
@@ -697,6 +971,13 @@ function GPSFieldTest:commandShift(direction,quiet)
         GPSTrackPosition.lastUpdate=150
     end
     if not quiet then GPSLogger.info(tostring(message).." | gesamte GPS-Spur inkl. Arbeitsbreitengrenzen") end
+    if quiet and GPSConfig and GPSConfig.showDiagnostics then
+        local clock=self.totalMs or 0
+        if clock-(self.lastDiagShiftAt or -100000)>=500 then
+            self.lastDiagShiftAt=clock
+            GPSLogger.debug(string.format("VERSATZ: seitlich=%+.2fm richtung=%d",GPSABLineManager.offsetMeters or 0,direction))
+        end
+    end
 end
 function GPSFieldTest:commandA()
     if not self:isMasterEnabled() then return "TerraLine GPS AUS" end
@@ -713,15 +994,21 @@ function GPSFieldTest:commandWidth(value)
     GPSSteeringController.stop("Breite geaendert")
     local n=tonumber(value)
     if not n or n<0.5 or n>60 then return "Breite muss zwischen 0.5 und 60 Metern liegen" end
-    GPSImplementDetector.override=n;GPSTrackGenerator.reset()
+    GPSImplementDetector.override=n
+    if GPSImplementDetector.resetCombo then GPSImplementDetector.resetCombo() end
+    GPSTrackGenerator.reset()
     return string.format("GPS Arbeitsbreite manuell %.1f m",n)
 end
 function GPSFieldTest:commandClear()
+    self.angleMode=false;self.rotateHeld=nil
     GPSSteeringController.stop("A/B geloescht");GPSABLineManager.clear();GPSTrackGenerator.reset();return "GPS A/B zurueckgesetzt"
 end
 function GPSFieldTest:commandAutoWidth()
     GPSSteeringController.stop("Breite neu ermittelt")
-    GPSImplementDetector.override=nil;GPSTrackGenerator.reset();return "GPS automatische Breite aktiviert"
+    GPSImplementDetector.override=nil
+    if GPSImplementDetector.resetCombo then GPSImplementDetector.resetCombo() end
+    GPSTrackGenerator.reset()
+    return "GPS automatische Breite aktiviert (Kombimaeher nach Stillstand einmessen)"
 end
 function GPSFieldTest:commandAutoMirror(value)
     local mode=tostring(value or "toggle"):lower()
@@ -738,6 +1025,14 @@ function GPSFieldTest:commandDeviceOffset()
     local msg=value and string.format("Geraeteversatz erkannt: %+.2f m aus Traktorsicht (%s). Noch NICHT auf Lenkung angewandt.",value,source)
               or ("Geraeteversatz: "..tostring(source))
     GPSLogger.info(msg);return msg
+end
+function GPSFieldTest:commandWorkWidthDiag()
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle and
+        GPSVehicleDetector.getCurrentVehicle()
+    if GPSDeviceOffsetProbe and type(GPSDeviceOffsetProbe.logWidthDiagnostic)=="function" then
+        return GPSDeviceOffsetProbe.logWidthDiagnostic(vehicle)
+    end
+    return "TerraLine: Breiten-Diagnose nicht verfuegbar"
 end
 function GPSFieldTest:commandAngle(value)
     local ok,msg=GPSCourseManager.setAngle(value)
@@ -759,9 +1054,10 @@ end
 function GPSFieldTest:loadMission00() end
 addModEventListener(GPSFieldTest)
 if type(addConsoleCommand)=="function" then
+    addConsoleCommand("gsTLGPSDiag","Testdiagnose dieser Instanz: on/off/status/snapshot","consoleDiagnostics",GPSDeveloperMenu)
     addConsoleCommand("gsGPSPower","TerraLine GPS Hauptschalter: on/off/toggle","commandMaster",GPSFieldTest)
     addConsoleCommand("gsGPSMenu","GPS Einstellungsmenue oeffnen/schliessen","commandMenu",GPSFieldTest)
-    addConsoleCommand("gsGPSSteerTest","Kurzer Diagnoseimpuls: left/right","commandSteerTest",GPSFieldTest)
+    -- gsGPSSteerTest is intentionally not exposed in the public beta.
     addConsoleCommand("gsGPSSteerReport","Diagnosebericht der Lenkung","commandSteerReport",GPSFieldTest)
     addConsoleCommand("gsGPSAssist","GPS Spurhaltung ein/aus (0-30 km/h, gerade Spuren)","commandAssist",GPSFieldTest)
     addConsoleCommand("gsGPSA","GPS Punkt A am Traktor setzen","commandA",GPSFieldTest)
@@ -774,4 +1070,5 @@ if type(addConsoleCommand)=="function" then
     addConsoleCommand("gsGPSRotate90","TerraLine GPS Spur 90 Grad rechts drehen","commandRotate90",GPSFieldTest)
     addConsoleCommand("gsGPSCourseSave","TerraLine aktuellen Kurs unter Namen speichern","commandCourseSave",GPSFieldTest)
     addConsoleCommand("gsGPSDeviceOffset","Geraeteversatz-Erkennung diagnose (nur Messung)","commandDeviceOffset",GPSFieldTest)
+    addConsoleCommand("gsGPSWorkWidthDiag","Arbeitsbereiche aller Anbaugeraete in log.txt ausgeben (nur Diagnose)","commandWorkWidthDiag",GPSFieldTest)
 end

@@ -1,0 +1,19 @@
+TerraLine GPS - PatchPunk - Version 1.0.0.0
+===========================================
+29.10.2026 - FBM + GITHUB PRE-RELEASE CANDIDATE (NOT YET PUBLISHED)
+- Phase 17: three-step A/B capture with 3 white preview guides;
+  consistent work-area measurement for selected mower combinations;
+  tracked lane shift, 90-degree and 0.1-degree angle adjustments.
+- Phase 17: 90 earlier PublicLuaCheck pcall complaints eliminated;
+  GIANTS TestRunner subsequently passed all 15 modules.
+- Phase 18: removed eight long-line Lua warnings by formatting only;
+  TestRunner 15/15 PASS with no Lua warnings (Oct 29 2026).
+- Phase 19: updated release notes, documented savegame persistence,
+  one-client dedicated-server observations and tested limitations.
+- Developer confirmed after server restart: saved courses load; deleted
+  courses remain deleted. Both require saving the FS25 savegame.
+- OPEN: real concurrent two-player/farm-isolation regression test.
+- All 29 Lua code files IDENTICAL to the tested Phase-18 baseline.
+
+An older beta version was already published on Forbidden Mods.
+This 1.0.0.0 build is not published until uploaded by PatchPunk.
