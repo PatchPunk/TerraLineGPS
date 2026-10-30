@@ -138,24 +138,31 @@ local function renderWorkPreview(screen)
     label(screen, x + .028, t + h - .020, "GERAETEBREITE (DYNAMISCH)", .0145, C.textMute, false)
 end
 
--- Stored AB shifts use ABLineManager's signed geometric normal. The LS25
--- field-view direction is opposite to the originally assumed sign. UI +/-
--- and the displayed signed value therefore invert that stored sign, while
--- still accounting for whether the driver faces A->B or B->A.
--- This does NOT change the underlying keyboard shift actions.
+-- Stored shifts use the A/B normal (dz,-dx). Determine the driver's
+-- right direction from the *actual vehicle's right vector*, not a guessed
+-- sign inversion from the A/B heading. Thus pressing RIGHT always moves
+-- the complete GPS corridor to the driver's right in either travel direction.
 function GPSMenuPage1.getDriverDirectionSign()
-    local a, b = GPSABLineManager.a, GPSABLineManager.b
+    local a,b=GPSABLineManager.a,GPSABLineManager.b
     if not a or not b then return 1 end
-    local vehicle = GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
-    local node = vehicle and GPSVehicleDetector.getPositionNode(vehicle)
-    if not node or type(localDirectionToWorld) ~= "function" then return 1 end
-    local fx, _, fz = localDirectionToWorld(node, 0, 0, 1)
-    if type(fx) ~= "number" or type(fz) ~= "number" then return 1 end
-    local dot = fx * (b.x - a.x) + fz * (b.z - a.z)
-    return dot < 0 and -1 or 1
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    local node=vehicle and GPSVehicleDetector.getPositionNode(vehicle)
+    if not node or type(localDirectionToWorld)~="function" then return 1 end
+    local dx,dz=b.x-a.x,b.z-a.z
+    local len=math.sqrt(dx*dx+dz*dz)
+    if len<0.0001 then return 1 end
+    local rx,_,rz=localDirectionToWorld(node,1,0,0)
+    if type(rx)=="number" and type(rz)=="number" then
+        local rightDot=rx*(dz/len)+rz*(-dx/len)
+        if math.abs(rightDot)>0.05 then return rightDot>0 and 1 or -1 end
+    end
+    -- Stable fallback if the right vector is unavailable.
+    local fx,_,fz=localDirectionToWorld(node,0,0,1)
+    if type(fx)~="number" or type(fz)~="number" then return 1 end
+    return (fx*dx+fz*dz)<0 and -1 or 1
 end
 function GPSMenuPage1.getDriverRelativeOffset()
-    return -(GPSABLineManager.offsetMeters or 0) * GPSMenuPage1.getDriverDirectionSign()
+    return (GPSABLineManager.offsetMeters or 0)*GPSMenuPage1.getDriverDirectionSign()
 end
 -- Display only: values in the driver's current left-positive frame.
 -- The A/B points already contain the manual translation; do not apply it
@@ -464,8 +471,9 @@ local function shift(screen,sign)
     local steps={0.01,0.05,0.10,0.50}
     local amount=steps[screen.shiftStepIndex or 1]
     local direction=GPSMenuPage1.getDriverDirectionSign()
-    -- LS25's actual field-view movement is opposite the old menu sign.
-    local physicalSign=-sign*direction
+    -- ABLineManager.shift(+1) moves toward the A/B positive normal.
+    -- The driver's right vector decides which sign is right on screen.
+    local physicalSign=sign*direction
     -- There is no work-width limit: shifting means moving the FULL guide
     -- corridor, not nudging a target within an unshifted corridor.
     local ok,msg=GPSABLineManager.shift(physicalSign,amount)
