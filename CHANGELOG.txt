@@ -1,3 +1,11 @@
+30.10.2026 - MANUELLER SPURVERSATZ: ANGLEICHUNG UND DIAGNOSE (TESTBUILD)
+- Menue und Tastenkombinationen verwenden dieselbe fahrerbezogene Rechts-/Links-Berechnung.
+- Bei aktivierter Entwicklerdiagnose meldet jeder manuelle Versatz die tatsaechliche Verschiebung der A/B-Koordinaten in Welt-X/Welt-Z.
+- HUD-Links/Rechts der Spurabweichung folgt nun der Traktor-Fahrtrichtung, auch auf der Rueckfahrt.
+- Bestehende Verschiebung des gesamten A/B-Korridors, Lenkung, Vorschau und Packer-Erkennung bleiben unveraendert.
+- Hinweis fuer Tests: Eine zuvor geaenderte Arbeitsbreite schaltet GPS-Lenkung ab; nach dem Versatz erneut aktivieren.
+- Spieltest und optische Richtungsbestaetigung stehen aus.
+
 30.10.2026 - REGRESSION FIX: PFLUG/PACKER UND MANUELLER SPURVERSATZ (TESTBUILD)
 - Filter bestimmt den Pflug anhand seines Geraetetyps, der Spezialisierung oder eigener XML-Datei, nicht anhand eines gemeinsam genutzten Plow-Verzeichnisses.
 - TIGGES DP 900 wird ueber eigenen Geraetenamen/Dateinamen ausgeschlossen, wenn der SERVO-Pflug angehaengt ist.
