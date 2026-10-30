@@ -10,5 +10,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python tools/check_project.py
       - run: python tools/build_mod.py
+      - run: python tools/check_project.py
