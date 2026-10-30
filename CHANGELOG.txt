@@ -1,3 +1,10 @@
+30.10.2026 - REGRESSION FIX: PFLUG/PACKER UND MANUELLER SPURVERSATZ (TESTBUILD)
+- Filter bestimmt den Pflug anhand seines Geraetetyps, der Spezialisierung oder eigener XML-Datei, nicht anhand eines gemeinsam genutzten Plow-Verzeichnisses.
+- TIGGES DP 900 wird ueber eigenen Geraetenamen/Dateinamen ausgeschlossen, wenn der SERVO-Pflug angehaengt ist.
+- Manuelle Spurverschiebung im Menue richtet Rechts/Links anhand der tatsaechlichen Traktor-Rechtsachse aus; beide Fahrtrichtungen getestet.
+- Keine Aenderung der Lenkregelung, des Menue-Layouts oder des Speicherformats.
+- Offline-Lua-Tests bestanden; die reale LS25-Geraetekombination und die Lenkung im Multiplayer bleiben ungetestet.
+
 30.10.2026 - PFLUG/PACKER GPS-FILTER (TESTBUILD; IM SPIEL NOCH ZU PRUEFEN)
 - Ignore auxiliary packers/rollers for TerraLine GPS when a plough is attached;
   the plough alone supplies the effective work width and steering center.
