@@ -74,7 +74,12 @@ function GPSTrackPosition.update(dt,vehicle)
     local workLive=live-autoCorrection
     local track=math.floor(workLive/width+0.5)
     local deviation=workLive-track*width
-    s.track=track;s.offset=deviation;s.side=deviation>=0 and "links" or "rechts";s.valid=true
+    -- Signed A/B deviation uses a fixed map normal; the HUD must instead
+    -- report left/right from the driver's CURRENT heading (return pass too).
+    local fx,_,fz=localDirectionToWorld(node,0,0,1)
+    local driverDir=(type(fx)=="number" and type(fz)=="number" and
+        (fx*dx+fz*dz)<0) and -1 or 1
+    s.track=track;s.offset=deviation;s.side=(deviation*driverDir)>=0 and "links" or "rechts";s.valid=true
     local number=s.getDisplayNumber(track)
     s.info=string.format("Spur %d | %.0f cm %s",number,math.abs(deviation)*100,s.side)
 end
