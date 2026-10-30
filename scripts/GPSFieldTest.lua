@@ -961,9 +961,10 @@ function GPSFieldTest:commandShift(direction,quiet)
     end
     -- Fine adjustment: keep the GPS assist engaged on its currently locked track.
     -- Regenerate clipped guide segments immediately, so physics never sees an empty set.
-    local ok,message=GPSABLineManager.shift(direction,0.01)
+    local vehicle=GPSVehicleDetector.getCurrentVehicle()
+    -- Shortcut RIGHT/LEFT is driver-relative, exactly like the menu stepper.
+    local ok,message=GPSABLineManager.shiftDriverRelative(direction,0.01,vehicle)
     if ok then
-        local vehicle=GPSVehicleDetector.getCurrentVehicle()
         local width=GPSImplementDetector.getWidth(vehicle)
         GPSTrackGenerator.generate(nil,GPSABLineManager.a,GPSABLineManager.b,width)
         GPSTrackGenerator.cacheKey=tostring(GPSABLineManager.a)..":"..tostring(GPSABLineManager.b)..":"..tostring(width)
