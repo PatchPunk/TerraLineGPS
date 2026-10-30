@@ -104,17 +104,22 @@ local function objectMetadata(object)
     return name,kind,filename,category
 end
 
+-- Inspect ONLY this object's own specialization, shop type/category and
+-- XML basename. A directory or mod-pack path (e.g. plows/ or a TIGGES
+-- plough+packer bundle) is not evidence that each contained object ploughs.
 function C.isPlow(object)
     if not object then return false end
     if object.spec_plow~=nil then return true end
     local name,kind,path,category=objectMetadata(object)
-    for _,part in ipairs({kind,category,path}) do
+    local basename=path:match("([^/]+)$") or ""
+    for _,part in ipairs({kind,category,basename}) do
         if part:find("plow",1,true) or part:find("plough",1,true) or
             part:find("pflug",1,true) then return true end
     end
     if hasWord(name,"plow") or hasWord(name,"plough") or
         hasWord(name,"pflug") then return true end
-    -- Modded implements sometimes expose ploughing only via WorkAreaType.
+    -- Some modded ploughs expose only a PLOW WorkAreaType. Do not infer
+    -- this from directory names shared by a roller in the same pack.
     if type(object.getWorkAreaByIndex)=="function" and type(WorkAreaType)=="table" then
         for i=1,32 do
             local area=object:getWorkAreaByIndex(i)
@@ -131,14 +136,15 @@ end
 function C.isPacker(object)
     if not object then return false end
     local name,kind,path,category=objectMetadata(object)
-    -- Always preserve real ploughs, even if the mod folder is named after
-    -- a plough+packer bundle (e.g. FS25_GTSTigges_DP_900_SERVO_T_6000_P).
-    if C.isPlow(object) then return false end
-    -- DP 900 identification must refer to THIS implement, never the shared
-    -- parent directory: that directory is also part of the plough XML path.
-    local fileName=path:match("([^/]+)$") or ""
-    if name:find("dp[%s_%-]*900") or fileName:find("dp[%s_%-]*900") or
-       fileName:find("dp900",1,true) then return true end
+    local basename=path:match("([^/]+)$") or ""
+    -- Distinctive names / XML basenames refer to THIS object, not the
+    -- parent mod folder used by both the SERVO plough and the DP 900.
+    local namedPacker=name:find("dp[%s_%-]*900") or
+        basename:find("dp[%s_%-]*900") or basename:find("dp900",1,true) or
+        name:find("packer",1,true) or name:find("packomat",1,true) or
+        hasWord(name,"roller") or hasWord(name,"walze")
+    if namedPacker then return true end
+    if object.spec_plow~=nil or C.isPlow(object) then return false end
     if object.spec_roller~=nil then return true end
     for _,part in ipairs({kind,category}) do
         if part:find("packer",1,true) or part:find("packomat",1,true) or
@@ -146,12 +152,8 @@ function C.isPacker(object)
             return true
         end
     end
-    if name:find("packer",1,true) or name:find("packomat",1,true) or
-       hasWord(name,"roller") or hasWord(name,"walze") or
-       path:find("/packers/",1,true) or path:find("/rollers/",1,true) or
-       path:find("/packer",1,true) then
-        return true
-    end
+    if path:find("/packers/",1,true) or path:find("/rollers/",1,true) or
+       path:find("/packer",1,true) then return true end
     return false
 end
 
