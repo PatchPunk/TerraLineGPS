@@ -11,7 +11,7 @@ with ZipFile(zipfile) as z:
   assert z.testzip() is None
   assert 'modDesc.xml' in z.namelist()
   root=ET.fromstring(z.read('modDesc.xml'))
-  assert root.findtext('version')=='1.0.0.0'
+  assert root.findtext('version')==ET.parse(ROOT/'modDesc.xml').getroot().findtext('version')
   for name in z.namelist():
     if name.endswith('.xml'): ET.fromstring(z.read(name))
   files=[n for n in z.namelist() if n.endswith('.lua')]
