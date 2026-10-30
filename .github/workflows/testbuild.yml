@@ -1,0 +1,61 @@
+name: TerraLine Test ZIP
+on:
+  push:
+    branches:
+      - test/packer-offset-20261030
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    if: github.ref_name == 'test/packer-offset-20261030'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check and create FS25_TerraLineGPS.zip
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          import xml.etree.ElementTree as ET
+          root=Path('.')
+          files=[
+            "CHANGELOG.txt","README.txt","README_EN.txt",
+            "assets/gpsLine_green.dds","assets/gpsLine_red.dds","assets/gpsLine_yellow.dds",
+            "gui/GPSMenu.xml","gui/icons/info_version.dds","gui/icons/speicher.dds",
+            "gui/icons/spurfuehrung.dds","gui/terraline_guide_mower_right.dds",
+            "gui/terraline_work_disc.dds","gui/terraline_work_tractor.dds",
+            "icon_terraline.dds","modDesc.xml"
+          ]+[str(p) for p in sorted(root.glob("scripts/*.lua"))]
+          assert len(files)==44, f"Expected 44 game files; got {len(files)}"
+          assert len(list(root.glob("scripts/*.lua")))==29
+          assert all((root/f).is_file() for f in files)
+          mod=ET.parse("modDesc.xml").getroot()
+          assert mod.attrib.get("descVersion")=="115"
+          assert mod.findtext("version")=="1.0.0.1"
+          ET.parse("gui/GPSMenu.xml")
+          with zipfile.ZipFile("FS25_TerraLineGPS.zip","w",compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for f in files: z.write(f,f)
+          with zipfile.ZipFile("FS25_TerraLineGPS.zip") as z:
+              assert z.testzip() is None
+              assert z.namelist()==files
+          print("FS25_TerraLineGPS.zip: 44 files, version 1.0.0.1, ZIP OK")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FS25_TerraLineGPS-test
+          path: FS25_TerraLineGPS.zip
+          if-no-files-found: error
+      - name: Update test ZIP on test branch only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- FS25_TerraLineGPS.zip
+          if ! git diff --cached --quiet; then
+            git commit -m "build(test): refresh FS25_TerraLineGPS.zip after regression fix"
+            git push origin HEAD:test/packer-offset-20261030
+          fi
