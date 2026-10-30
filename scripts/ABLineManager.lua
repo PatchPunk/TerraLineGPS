@@ -50,6 +50,47 @@ function GPSABLineManager.setB()
     return string.format("GPS B gesetzt: %.1f / %.1f",p.x,p.z)
 end
 
+-- Shared conversion for the menu AND the keyboard shortcuts. A/B uses
+-- normal (dz,-dx), while the driver's right depends on tractor orientation.
+-- Do not duplicate this sign conversion in individual input handlers.
+function GPSABLineManager.getDriverRightSign(vehicle)
+    local a,b=GPSABLineManager.a,GPSABLineManager.b
+    if not a or not b then return 1,nil end
+    local node=vehicle and GPSVehicleDetector and GPSVehicleDetector.getPositionNode(vehicle)
+    if not node or type(localDirectionToWorld)~="function" then return 1,nil end
+    local dx,dz=b.x-a.x,b.z-a.z
+    local len=math.sqrt(dx*dx+dz*dz)
+    if len<0.0001 then return 1,nil end
+    local rx,_,rz=localDirectionToWorld(node,1,0,0)
+    if type(rx)=="number" and type(rz)=="number" then
+        local dot=rx*(dz/len)+rz*(-dx/len)
+        if math.abs(dot)>0.05 then return dot>0 and 1 or -1,dot end
+    end
+    -- With a 90-degree tractor heading the driver's right is ambiguous
+    -- relative to the course; use the established forward-heading fallback.
+    local fx,_,fz=localDirectionToWorld(node,0,0,1)
+    if type(fx)~="number" or type(fz)~="number" then return 1,nil end
+    return (fx*dx+fz*dz)<0 and -1 or 1,nil
+end
+function GPSABLineManager.shiftDriverRelative(direction,meters,vehicle)
+    local sign,dot=GPSABLineManager.getDriverRightSign(vehicle)
+    local a=GPSABLineManager.a
+    local oldX,oldZ=a and a.x,a and a.z
+    local ok,msg=GPSABLineManager.shift(direction*sign,meters)
+    if ok and GPSConfig and GPSConfig.showDiagnostics and GPSLogger then
+        local movedX,movedZ=a.x-oldX,a.z-oldZ
+        -- Print actual map translation, not merely the requested step value.
+        GPSLogger.info(string.format(
+            "SPURVERSATZ KONTROLLE: Fahrerbefehl=%+d Schritt=%.2fm "..
+            "AB-Normal-Vorzeichen=%+d DeltaWeltX=%+.3fm DeltaWeltZ=%+.3fm "..
+            "Traktor-Rechtsprojektion=%s GesamtAB=%+.2fm",
+            direction,meters,sign,movedX,movedZ,
+            dot and string.format("%+.3f",dot) or "n/v",
+            GPSABLineManager.offsetMeters or 0))
+    end
+    return ok,msg
+end
+
 -- Shift an established A/B guidance line, keeping the heading unchanged.
 -- Positive steps move toward the vehicle's right relative to A->B.
 function GPSABLineManager.shift(direction,meters)
