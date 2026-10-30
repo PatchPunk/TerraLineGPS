@@ -21,16 +21,14 @@ local function visit(object,items,seen,level)
     end
 end
 local function relevantItems(items,tractorNode)
-    local working,ignored={},{}
-    for _,obj in ipairs(items) do
-        local ballast,position,name,category,vehicleType,reason=GPSAttachmentClassifier.classify(obj,tractorNode)
-        if ballast then
-            ignored[#ignored+1]={name=name,position=position,reason=reason}
-        else
-            working[#working+1]=obj
-        end
+    return GPSAttachmentClassifier.filterForGPS(items,tractorNode)
+end
+local function ignoredCounts(ignored)
+    local weights,packers=0,0
+    for _,entry in ipairs(ignored) do
+        if entry.kind=="Packer" then packers=packers+1 else weights=weights+1 end
     end
-    return working,ignored
+    return weights,packers
 end
 local function findSpan(object,tractorNode)
     -- Prefer live AI marker positions (follow moving / pivoting tools).
@@ -82,7 +80,7 @@ function GPSDeviceOffsetProbe.getData(vehicle)
     local attached={};visit(vehicle,attached,{},0)
     local items,ignored=relevantItems(attached,node)
     if #items==0 then
-        return nil,#ignored>0 and "Kein Arbeitsgeraet (nur Gewichte angehaengt)" or "Kein Arbeitsgeraet"
+        return nil,#ignored>0 and "Kein GPS-Arbeitsgeraet (nur ausgeschlossene Anbauten)" or "Kein Arbeitsgeraet"
     end
     local lo,hi=math.huge,-math.huge
     local sources={};local included=0
@@ -95,8 +93,9 @@ function GPSDeviceOffsetProbe.getData(vehicle)
     end
     if included==0 or lo>=hi then return nil,"Keine geeigneten Marker/Arbeitsbereiche" end
     local center=(lo+hi)*0.5
-    local desc=string.format("Arbeitskanten L=%+.2fm R=%+.2fm, Mitte=%+.2fm aus Traktorsicht | %d von %d Arbeitsgeraeten | %s | %d Gewichte ignoriert",
-        lo,hi,center,included,#items,sources["AI-Marker"] and "AI-Marker" or "WorkArea",#ignored)
+    local weights,packers=ignoredCounts(ignored)
+    local desc=string.format("Arbeitskanten L=%+.2fm R=%+.2fm, Mitte=%+.2fm aus Traktorsicht | %d von %d Arbeitsgeraeten | %s | %d Gewichte, %d Packer ignoriert",
+        lo,hi,center,included,#items,sources["AI-Marker"] and "AI-Marker" or "WorkArea",weights,packers)
     -- Extra return values expose the SAME physical bounds used to calculate
     -- center. Old callers accepting only three values remain compatible.
     return center,desc,(included==#items),lo,hi
@@ -196,15 +195,19 @@ function GPSDeviceOffsetProbe.logWidthDiagnostic(vehicle)
         return "BREITENDIAG: Keine Anbaugeraete"
     end
     local unionCandidates={}
-    local deviceCount,workingCount,weightCount=0,0,0
+    local _,ignored=relevantItems(objects,node)
+    local ignoredMap={}
+    for _,entry in ipairs(ignored) do ignoredMap[entry.object]=entry end
+    local deviceCount,workingCount,weightCount,packerCount=0,0,0,0
     for index,obj in ipairs(objects) do
-        local ballast,position,name,category,vehicleType,reason=GPSAttachmentClassifier.classify(obj,node)
+        local _,position,name,category,vehicleType=GPSAttachmentClassifier.classify(obj,node)
+        local excluded=ignoredMap[obj]
         GPSLogger.force(string.format("BREITENDIAG ANBAU %d/%d | %s | Position=%s | Klasse=%s | Shop=%s | Typ=%s",
-            index,#objects,name,position,ballast and "Gewicht" or "Arbeitsgeraet/ungeklaert",tostring(category),tostring(vehicleType)))
-        if ballast then
-            weightCount=weightCount+1
-            GPSLogger.force(string.format("BREITENDIAG AUSGEKLAMMERT %d | %s (%s) | Gewicht, Grund=%s",
-                index,name,position,reason))
+            index,#objects,name,position,excluded and excluded.kind or "Arbeitsgeraet/ungeklaert",tostring(category),tostring(vehicleType)))
+        if excluded then
+            if excluded.kind=="Packer" then packerCount=packerCount+1 else weightCount=weightCount+1 end
+            GPSLogger.force(string.format("BREITENDIAG AUSGEKLAMMERT %d | %s (%s) | %s, Grund=%s",
+                index,name,position,excluded.kind,excluded.reason))
         else
             workingCount=workingCount+1
             local marker=widthDiagMarker(obj,node)
@@ -231,10 +234,10 @@ function GPSDeviceOffsetProbe.logWidthDiagnostic(vehicle)
     if GPSImplementDetector and GPSImplementDetector.getData then
         currentWidth,currentSource,currentName,currentDetected=GPSImplementDetector.getData(vehicle)
     end
-    GPSLogger.force(string.format("BREITENDIAG SUMME | erkannt=%d/%d Arbeitsgeraete | Gewichte ignoriert=%d | Union=%.2fm | Aeussere-Spannweite=%.2fm | Bereiche=%s",
-        deviceCount,workingCount,weightCount,total,span,widthDiagFormat(merged)))
+    GPSLogger.force(string.format("BREITENDIAG SUMME | erkannt=%d/%d Arbeitsgeraete | Gewichte ignoriert=%d | Packer ignoriert=%d | Union=%.2fm | Aeussere-Spannweite=%.2fm | Bereiche=%s",
+        deviceCount,workingCount,weightCount,packerCount,total,span,widthDiagFormat(merged)))
     GPSLogger.force(string.format("BREITENDIAG AKTUELL | TerraLine-Breite=%s | Quelle=%s | erkannt=%s | KEINE automatische Uebernahme",
         currentWidth and string.format("%.2fm",currentWidth) or "unbekannt",tostring(currentSource),tostring(currentDetected)))
     GPSLogger.force("BREITENDIAG ENDE | Union ist nur ein Messkandidat; WorkArea-Typen/aktivierte Bereiche noch nicht gefiltert")
-    return string.format("BREITENDIAG: %d/%d Arbeitsgeraete, %d Gewichte ignoriert; Union %.2fm, Spannweite %.2fm. Bitte log.txt senden.",deviceCount,workingCount,weightCount,total,span)
+    return string.format("BREITENDIAG: %d/%d Arbeitsgeraete, %d Gewichte, %d Packer ignoriert; Union %.2fm, Spannweite %.2fm. Bitte log.txt senden.",deviceCount,workingCount,weightCount,packerCount,total,span)
 end

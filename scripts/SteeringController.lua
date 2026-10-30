@@ -134,10 +134,8 @@ function C.toggle(vehicle)
     if GPSSteeringDiagnostics and GPSSteeringDiagnostics.active then return rejectActivation("GPS: Erst Lenktest beenden") end
     if vehicle.spec_aiAutomaticSteering and vehicle.spec_aiAutomaticSteering.steeringEnabled then return rejectActivation("GPS: GIANTS Lenkassistent deaktivieren") end
     if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled then
-        if isMultiplayerClient() or
-            (g_currentMission and g_currentMission.missionDynamicInfo and g_currentMission.missionDynamicInfo.isMultiplayer) then
-            return rejectActivation("GPS: Geraete-Auto noch nicht fuer Multiplayer freigegeben")
-        end
+        -- MP uses the same validated work-center measurement as SP.
+        -- Local MP steering input, speed limit and safety watchdog are unchanged.
         if GPSDeviceOffsetAuto.getCorrection(vehicle,1)==nil then
             return rejectActivation("GPS: Geraete-Auto zuerst bei Stillstand einmessen")
         end
@@ -230,11 +228,8 @@ function C.compute(vehicle,dt,mpMode)
     local nx,nz=-uz,ux
     local autoCorrection=0
     if GPSDeviceOffsetAuto and GPSDeviceOffsetAuto.enabled then
-        if mpMode or isMultiplayerClient() then
-            C.stop("Geraete-Auto nicht fuer Multiplayer");return nil
-        end
         autoCorrection=GPSDeviceOffsetAuto.getCorrection(vehicle,dir)
-        if autoCorrection==nil then
+        if type(autoCorrection)~="number" or autoCorrection~=autoCorrection then
             C.stop("Geraete-Auto Messung nicht mehr gueltig");return nil
         end
     end

@@ -1,4 +1,6 @@
--- Experimental singleplayer compensation for asymmetric implements.
+-- Experimental SP/MP compensation for asymmetric implements.
+-- In MP this works on the local driver's steering target; real two-player
+-- operation and implement geometry replication still require an in-game test.
 -- The saved A/B work center, work-width borders and manual course shift
 -- MUST NOT move. Only the tractor's steering target is displaced by the
 -- measured work-center offset. OFF by default; measurement only at rest.
@@ -58,14 +60,14 @@ function D.setEnabled(state)
     local speed=vehicle and type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
     if speed>2 then return false,"Geraete-Auto: Zum Umschalten anhalten" end
     if state then
-        if g_client~=nil and g_server==nil then
-            return false,"Geraete-Auto: Dieser Test ist nur fuer Singleplayer"
-        end
-        if g_currentMission and g_currentMission.missionDynamicInfo and
-            g_currentMission.missionDynamicInfo.isMultiplayer then
-            return false,"Geraete-Auto: Multiplayer noch nicht getestet"
-        end
         if not vehicle then return false,"Geraete-Auto: Traktor fehlt" end
+        -- MP clients may enable auto-offset only in their locally driven tractor.
+        -- Server-side geometry is not guessed or synchronized by this toggle.
+        if g_client~=nil and g_server==nil and
+            (vehicle.isClient~=true or vehicle.spec_drivable==nil or
+             (type(vehicle.getIsEntered)=="function" and not vehicle:getIsEntered())) then
+            return false,"Geraete-Auto: Im MP nur im selbst gefahrenen Traktor"
+        end
         if not GPSABLineManager.a or not GPSABLineManager.b then
             return false,"Geraete-Auto: Zuerst A/B erstellen"
         end
@@ -121,6 +123,13 @@ function D.update(dt,vehicle)
         type(lo)~="number" or type(hi)~="number" or
         lo~=lo or hi~=hi or hi-lo<0.5 then
         D.lastStatus="Arbeitsbreite/Arbeitskanten nicht sicher erkannt";clearMeasurement();return
+    end
+    if not isCombo and math.abs((hi-lo)-width)>math.max(0.08,width*0.02) then
+        -- A second work object must not widen the measured steering center
+        -- beyond the effective lane width (e.g. an unrecognized plough packer).
+        D.lastStatus="Arbeitskanten passen nicht zur GPS-Arbeitsbreite"
+        clearMeasurement()
+        return
     end
     if isCombo then
         -- These must describe the SAME unfolded geometry. In Phase 7 the

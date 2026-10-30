@@ -5,7 +5,8 @@ Contact: patchpunk@mail.de | Updated: 2026-10-29
 TESTING / PUBLICATION STATUS
 - Pre-release for Forbidden Mods (FBM); author upload required.
 - GIANTS TestRunner on Phase 18 (2026-10-29): 15/15 PASS, no Lua warnings.
-  All 29 Lua scripts remain unchanged since this tested baseline.
+  MP implement detection/offset assistance has since been changed and has
+  NOT yet been verified by an in-game MP test.
 - Singleplayer developer-tested: A/B, steering, NewGUI, mower width/offset.
 - Dedicated server with one client: server course messages, steering,
   farm change and list requests observed in real game logs.
@@ -43,8 +44,13 @@ IMPORTANT: After saving or deleting a course, ALSO SAVE THE FS25 GAME.
 Course data are stored in terralineGPS.xml in the savegame directory.
 Back up the savegame before updating. Remove all older TerraLine ZIPs;
 server and clients must use the identical archive.
-Automatic implement-offset steering is DISABLED in multiplayer.
-In MP engage steering only close to/aligned with the course. Steering
+Automatic implement detection (including stabilized multi-mower width) and
+implement-offset steering are now ENABLED for local MP drivers, but remain
+EXPERIMENTAL and unverified with two simultaneous players.
+Enable implement-auto while stopped with GPS steering OFF, in your own
+tractor, and wait for a ready measurement. Uncertain geometries prevent
+activation or cause safe disengagement. In MP engage steering only near
+and aligned with the course. Steering
 is limited to 30 km/h and has safety disengagements.
 Straight A/B guidance only; no contour mode or tramline manager included.
 

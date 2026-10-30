@@ -5,7 +5,8 @@ Kontakt: patchpunk@mail.de | Stand: 29.10.2026
 TEST- UND VEROEFFENTLICHUNGSSTATUS
 - Pre-Release fuer Forbidden Mods (FBM); Upload muss vom Autor erfolgen.
 - Offizieller GIANTS TestRunner: Phase 18 am 29.10.2026 15/15 PASS,
-  ohne Lua-Warnungen. Die 29 Lua-Dateien wurden seitdem nicht veraendert.
+  ohne Lua-Warnungen. Die MP-Geraeteerkennung/Versatzkorrektur wurde
+  danach gezielt angepasst und ist noch NICHT im Spiel getestet.
 - Einzelspieler: A/B-Erfassung, GPS-Lenkung, NewGUI und Arbeitsbreiten-/
   Mähwerksversatz vom Entwickler positiv getestet.
 - Dedicated Server mit einem Client: Server-Synchronisation, GPS-Lenkung,
@@ -44,9 +45,12 @@ WICHTIG: Nach Kurs speichern oder loeschen MUSS der LS25-Spielstand
 explizit gespeichert werden. Kursdaten: terralineGPS.xml im Savegame.
 Vor dem Update immer ein Savegame-Backup erstellen. Alte TerraLine-ZIPs
 entfernen; Server und Clients benoetigen exakt das gleiche ZIP.
-Automatischer Geraeteversatz fuer die GPS-Lenkung ist im Multiplayer
-aktuell deaktiviert. GPS-Lenkung bei MP nur nahe und parallel zur Spur
-aktivieren. Maximal 30 km/h; Sicherheitsabschaltungen bleiben aktiv.
+Automatische Geraeteerkennung inkl. stabilisierter Maehwerk-Gesamtbreite
+und automatische Geraeteversatzkorrektur sind im Multiplayer FREIGESCHALTET,
+aber NOCH NICHT im Spiel mit zwei Spielern getestet (experimentell).
+Geraete-Auto im eigenen Traktor bei Stillstand und GPS AUS einschalten;
+auf "Bereit" warten. Bei unklarer Geometrie bleibt die GPS-Lenkung gesperrt
+bzw. schaltet ab. GPS-Lenkung im MP nur nahe und parallel zur Spur aktivieren. Maximal 30 km/h; Sicherheitsabschaltungen bleiben aktiv.
 Keine Konturlenkung; FieldContour und Tramline Manager nicht enthalten.
 
 FEHLER MELDEN: patchpunk@mail.de (LS25-Version, Reproduktionsschritte,

@@ -58,7 +58,7 @@ end
 local function collect(o,items,seen,depth)
     if not o or seen[o] or depth>8 then return end
     seen[o]=true
-    if depth>0 and not GPSAttachmentClassifier.isBallast(o) then items[#items+1]=o end
+    if depth>0 then items[#items+1]=o end
     if type(o.getAttachedImplements)=="function" then
         local attached=o:getAttachedImplements()
         if type(attached)=="table" then
@@ -119,6 +119,7 @@ local function measureMowers(vehicle)
     local root=GPSVehicleDetector.getPositionNode(vehicle)
     if root==nil then return nil,"Keine Traktormessbasis" end
     local items={};collect(vehicle,items,{},0)
+    items=GPSAttachmentClassifier.filterForGPS(items)
     if #items<2 then return nil,"Weniger als zwei Geraete" end
     local ranges,labels,identities={},{},{}
     for _,obj in ipairs(items) do
@@ -170,6 +171,7 @@ end
 function GPSImplementDetector.getVerifiedMowerCombo(vehicle)
     if vehicle==nil then return false end
     local items={};collect(vehicle,items,{},0)
+    items=GPSAttachmentClassifier.filterForGPS(items)
     if #items<2 then return false end
     for _,obj in ipairs(items) do
         if obj.spec_mower==nil then return false end
@@ -196,15 +198,9 @@ function GPSImplementDetector.update(dt,vehicle)
     local d=GPSImplementDetector
     if d.comboVehicle~=vehicle then d.resetCombo();d.comboVehicle=vehicle end
     if vehicle==nil or valid(d.override) then return end
-    -- Existing vehicle and synchronization limitations: use this new
-    -- work-area based detector in singleplayer only.
-    local mission=g_currentMission
-    if (mission and mission.missionInfo and mission.missionInfo.isMultiplayer) or
-       (mission and mission.missionDynamicInfo and mission.missionDynamicInfo.isMultiplayer) then
-        d.comboWidth=nil;d.comboName=nil;d.comboMinX=nil;d.comboMaxX=nil;d.comboKey=nil
-        d.comboSample=nil;d.comboStable=0
-        return
-    end
+    -- MP: measure the current driver's LOCAL implement work areas as in SP.
+    -- Only accept a stabilized geometry while stopped and steering OFF;
+    -- no server-wide course data or remote vehicle state are modified.
     if GPSSteeringController and GPSSteeringController.enabled then return end
     if type(vehicle.getLastSpeed)~="function" then return end
     local speed=vehicle:getLastSpeed()
@@ -260,6 +256,7 @@ function GPSImplementDetector.getData(vehicle)
             GPSImplementDetector.comboName or "Maehwerk-Kombination",true
     end
     local items={};collect(vehicle,items,{},0)
+    items=GPSAttachmentClassifier.filterForGPS(items)
     local bestW,bestSrc,bestName=nil,nil,nil
     for _,obj in ipairs(items) do
         local w,src=probe(obj)

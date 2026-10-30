@@ -1,3 +1,23 @@
+30.10.2026 - PFLUG/PACKER GPS-FILTER (TESTBUILD; IM SPIEL NOCH ZU PRUEFEN)
+- Ignore auxiliary packers/rollers for TerraLine GPS when a plough is attached;
+  the plough alone supplies the effective work width and steering center.
+- Preserve standalone rollers and other working implements.
+- Apply one shared classification in work-width and offset measurement;
+  the width diagnostic now reports excluded packers separately.
+- Refuse automatic steering offset when work-edge span differs from lane width
+  (safety for unknown attachments instead of silently steering off-center).
+- No HUD, keybinding, course management or steering algorithm changes.
+- modDesc.xml keeps uploaded package version 1.0.0.1. No release published.
+
+30.10.2026 - MP IMPLEMENT AUTO: EXPERIMENTAL TEST BUILD
+- Enabled stabilized combined mower work-width recognition in multiplayer.
+- Enabled local-driver implement-center steering correction in multiplayer.
+- Preserved existing geometry validation, at-rest calibration, 30 km/h
+  limit, lane-alignment requirement and MP steering safety watchdogs.
+- No changes to course persistence, farm-sync, UI layout or input bindings.
+- Lua syntax/offline tests only; real MP function NOT YET VERIFIED.
+- Version remains 1.0.0.0; not an independently approved public release.
+
 TerraLine GPS - PatchPunk - Version 1.0.0.0
 ===========================================
 29.10.2026 - FBM + GITHUB PRE-RELEASE CANDIDATE (NOT YET PUBLISHED)
@@ -13,7 +33,14 @@ TerraLine GPS - PatchPunk - Version 1.0.0.0
 - Developer confirmed after server restart: saved courses load; deleted
   courses remain deleted. Both require saving the FS25 savegame.
 - OPEN: real concurrent two-player/farm-isolation regression test.
-- All 29 Lua code files IDENTICAL to the tested Phase-18 baseline.
+- Phase-19 pre-release: 29 Lua files identical to tested Phase-18 baseline.
+- This 30.10.2026 test build changes 3 Lua files (ImplementDetector,
+  GPSDeviceOffsetAuto, SteeringController) after that baseline.
 
 An older beta version was already published on Forbidden Mods.
 This 1.0.0.0 build is not published until uploaded by PatchPunk.
+30.10.2026 - Korrektur Testbuild v1.0.0.1 (Pflug-Packer)
+- Regression behoben: gemeinsamer Mod-Ordner mit DP_900 im Pfad darf den eigentlichen Pflug nicht als Packer klassifizieren.
+- Pflug hat bei der Arbeitsgeraete-Erkennung Vorrang; DP-900-Kennung wird nur am Geraetenamen bzw. XML-Dateinamen geprueft.
+- Packer bleibt bei angehaengtem Pflug fuer GPS-Arbeitsmitte/-breite ausgeschlossen, einzeln genutzte Walze bleibt erkennbar.
+- Kein automatischer LS25- oder Zwei-Spieler-Praxistest; Bitte vor Release im Spiel pruefen.

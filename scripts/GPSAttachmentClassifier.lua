@@ -86,3 +86,95 @@ function C.isBallast(object)
     local ballast=C.classify(object,nil)
     return ballast
 end
+
+-- A plough's auxiliary packer/roller must not define the GPS work center.
+-- Exclude it ONLY while a plough is present in the same attachment group:
+-- a roller used as the main implement must still be measurable by TerraLine.
+local function objectMetadata(object)
+    local name=text(nameOf(object))
+    local kind=text(object and (object.typeName or
+        (type(object.type)=="table" and object.type.name)))
+    local filename=text(object and object.configFileName):gsub("\\","/")
+    local category=""
+    if filename~="" and g_storeManager and
+            type(g_storeManager.getItemByXMLFilename)=="function" then
+        local item=g_storeManager:getItemByXMLFilename(object.configFileName)
+        if type(item)=="table" then category=text(item.categoryName) end
+    end
+    return name,kind,filename,category
+end
+
+function C.isPlow(object)
+    if not object then return false end
+    if object.spec_plow~=nil then return true end
+    local name,kind,path,category=objectMetadata(object)
+    for _,part in ipairs({kind,category,path}) do
+        if part:find("plow",1,true) or part:find("plough",1,true) or
+            part:find("pflug",1,true) then return true end
+    end
+    if hasWord(name,"plow") or hasWord(name,"plough") or
+        hasWord(name,"pflug") then return true end
+    -- Modded implements sometimes expose ploughing only via WorkAreaType.
+    if type(object.getWorkAreaByIndex)=="function" and type(WorkAreaType)=="table" then
+        for i=1,32 do
+            local area=object:getWorkAreaByIndex(i)
+            if type(area)~="table" then break end
+            if (WorkAreaType.PLOW~=nil and area.type==WorkAreaType.PLOW) or
+               (WorkAreaType.PLOWSHARE~=nil and area.type==WorkAreaType.PLOWSHARE) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function C.isPacker(object)
+    if not object then return false end
+    local name,kind,path,category=objectMetadata(object)
+    -- Always preserve real ploughs, even if the mod folder is named after
+    -- a plough+packer bundle (e.g. FS25_GTSTigges_DP_900_SERVO_T_6000_P).
+    if C.isPlow(object) then return false end
+    -- DP 900 identification must refer to THIS implement, never the shared
+    -- parent directory: that directory is also part of the plough XML path.
+    local fileName=path:match("([^/]+)$") or ""
+    if name:find("dp[%s_%-]*900") or fileName:find("dp[%s_%-]*900") or
+       fileName:find("dp900",1,true) then return true end
+    if object.spec_roller~=nil then return true end
+    for _,part in ipairs({kind,category}) do
+        if part:find("packer",1,true) or part:find("packomat",1,true) or
+           part=="roller" or part=="rollers" or part:find("walze",1,true) then
+            return true
+        end
+    end
+    if name:find("packer",1,true) or name:find("packomat",1,true) or
+       hasWord(name,"roller") or hasWord(name,"walze") or
+       path:find("/packers/",1,true) or path:find("/rollers/",1,true) or
+       path:find("/packer",1,true) then
+        return true
+    end
+    return false
+end
+
+-- Shared filter for lane width AND steering-offset measurement. Returning the
+-- same set prevents an auxiliary packer changing the offset but not the width.
+-- Unknown attachments remain relevant (fail-safe; no guessed correction).
+function C.filterForGPS(objects,tractorNode)
+    local hasPlow=false
+    for _,object in ipairs(objects or {}) do
+        if C.isPlow(object) then hasPlow=true;break end
+    end
+    local working,ignored={},{}
+    for _,object in ipairs(objects or {}) do
+        local ballast,position,name,_,_,reason=C.classify(object,tractorNode)
+        if ballast then
+            ignored[#ignored+1]={object=object,name=name,position=position,
+                reason=reason,kind="Gewicht"}
+        elseif hasPlow and C.isPacker(object) then
+            ignored[#ignored+1]={object=object,name=name,position=position,
+                reason="Packer beim Pfluegen ohne GPS-Einfluss",kind="Packer"}
+        else
+            working[#working+1]=object
+        end
+    end
+    return working,ignored
+end
