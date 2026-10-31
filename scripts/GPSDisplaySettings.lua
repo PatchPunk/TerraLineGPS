@@ -2,7 +2,7 @@
 -- New XML attributes use unique names; old experimental height/width are ignored.
 GPSDisplaySettings={loadedPath=nil,dirty=false,defaultStrokes=1,
     defaultDurationSeconds=0,defaultHeightMeters=0.10,defaultThicknessMeters=0.00,
-    defaultPlowMode=true,defaultPlowOverlapPercent=-3}
+    defaultPlowMode=true,defaultPlowOverlapPercent=0}
 local M=GPSDisplaySettings
 local function clampStrokes(n)
     if type(n)~="number" or n~=n then return M.defaultStrokes end
@@ -21,12 +21,11 @@ local function clampThickness(n)
     if type(n)~="number" or n~=n then return M.defaultThicknessMeters end
     return math.floor(math.max(0,math.min(0.30,n))*100+0.5)/100
 end
+-- Free 1-percent steps on either side of zero. Protect the geometry from
+-- extremely narrow or wide lanes, while allowing ordinary plough settings.
 local function clampOverlap(percent)
     if type(percent)~="number" or percent~=percent then return M.defaultPlowOverlapPercent end
-    -- Convert older positive overlap settings to the conservative -3% default.
-    -- Negative percentages increase the spacing between pass centers.
-    if percent>0 then percent=-3 end
-    return math.max(-5,math.min(-3,math.floor(percent+0.5)))
+    return math.max(-50,math.min(50,math.floor(percent+0.5)))
 end
 local function getPath()
     local info=g_currentMission and g_currentMission.missionInfo
@@ -60,12 +59,13 @@ function M.ensureLoaded()
     -- still handle savegames without an existing display configuration.
     local xml=loadXMLFile("TerraLineDisplay",path)
     if not xml or xml==0 then return end
-    local n,duration,height,thickness,mode,overlap
+    local n,duration,height,thickness,mode,overlap,overlapSchema
     if type(getXMLInt)=="function" then
         n=getXMLInt(xml,"terralineDisplay#strokes")
         duration=getXMLInt(xml,"terralineDisplay#lineDurationSeconds")
         mode=getXMLInt(xml,"terralineDisplay#plowMode")
         overlap=getXMLInt(xml,"terralineDisplay#plowOverlapPercent")
+        overlapSchema=getXMLInt(xml,"terralineDisplay#plowOverlapSchema")
     end
     if type(getXMLFloat)=="function" then
         height=getXMLFloat(xml,"terralineDisplay#lineHeightMeters")
@@ -77,7 +77,10 @@ function M.ensureLoaded()
     GPSConfig.lineHeightMeters=clampHeight(height)
     GPSConfig.lineThicknessMeters=clampThickness(thickness)
     GPSConfig.plowModeEnabled=(mode==nil) and M.defaultPlowMode or mode==1
-    GPSConfig.plowOverlapPercent=clampOverlap(overlap)
+    -- Old testbuilds stored only -3/-4/-5 and had no schema marker.
+    -- On first opening after this update they start at the new neutral 0%.
+    -- Values subsequently chosen in the new UI are preserved.
+    GPSConfig.plowOverlapPercent=(overlapSchema==2) and clampOverlap(overlap) or M.defaultPlowOverlapPercent
 end
 function M.save()
     local path=getPath()
@@ -100,6 +103,7 @@ function M.save()
     setXMLFloat(xml,"terralineDisplay#lineThicknessMeters",clampThickness(GPSConfig.lineThicknessMeters))
     setXMLInt(xml,"terralineDisplay#plowMode",GPSConfig.plowModeEnabled and 1 or 0)
     setXMLInt(xml,"terralineDisplay#plowOverlapPercent",clampOverlap(GPSConfig.plowOverlapPercent))
+    setXMLInt(xml,"terralineDisplay#plowOverlapSchema",2)
     saveXMLFile(xml)
     if type(delete)=="function" then delete(xml) end
     M.dirty=false

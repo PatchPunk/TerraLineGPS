@@ -1,3 +1,12 @@
+31.10.2026 - TESTBUILD: PFLUG-MODUS FREI WAEHLBAR, NULL STANDARD
+- Pflug-Modus: pro 1 Prozentpunkt ueber die bestehenden Minus-/Plus-Knoepfe frei von -50% bis +50% einstellbar; der Wert kann 0% durchlaufen.
+- Standard 0%: Abstand benachbarter Fahrspuren entspricht der tatsaechlichen Arbeitsbreite.
+- Positive Werte verkleinern den Spurabstand (Ueberlappung), negative Werte vergroessern ihn (Abstand).
+- Vorhandene Testbuild-XMLs ohne plowOverlapSchema werden einmalig mit 0% initialisiert; anschliessende Einstellungen bleiben gespeichert (Schema 2).
+- Schutzbereich -50% bis +50% vermeidet extrem schmale Spuren. Der Pflug-Modus ist weiterhin nur mit erkanntem Pflug wirksam.
+- Keine Aenderung an Packerfilter, automatischer Geraetemitten-Kalibrierung, manueller GPS-Spurverschiebung, Lenkung, Kursen oder Mod-Version.
+- Testbuild, LS25-Praxistest und Mehrspieler-Verifizierung ausstehend.
+
 31.10.2026 - TESTBUILD: PFLUG-MODUS -3% BIS -5% / SCHNELLERES EINSPUREN / MANUELLER VERSATZ
 - Pflug-Modus -3%, -4%, -5% statt bisher positiver Ueberlappung; 4.45m Pflugbreite ergibt 4.5835m bis 4.6725m Spurabstand.
 - Alte positive Werte in terralineDisplay.xml werden beim Laden auf -3% umgestellt. Das veraendert nicht die gemessene Geraetebreite.

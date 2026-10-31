@@ -433,12 +433,13 @@ function GPSMenuPage1.draw(screen)
 
     -- Plough overlap controls in the existing working-width title bar.
     local enabled=GPSConfig.plowModeEnabled==true
-    local percent=math.max(-5,math.min(-3,GPSConfig.plowOverlapPercent or -3))
+    local percent=math.max(-50,math.min(50,GPSConfig.plowOverlapPercent or 0))
     T.button(screen, x+.204, .158, .092, .031,
         enabled and "PFLUG AN" or "PFLUG AUS","plowModeToggle",
         {size=.015,selected=enabled})
     T.button(screen, x+.303, .158, .025, .031, "-", "plowOverlapMinus", {size=.022})
-    label(screen, x+.342, .181, string.format("%d%%",percent), .018, C.text, true, "center")
+    label(screen, x+.342, .181, percent>0 and string.format("+%d%%",percent)
+        or string.format("%d%%",percent), .018, C.text, true, "center")
     T.button(screen, x+.358, .158, .025, .031, "+", "plowOverlapPlus", {size=.022})
     renderWorkPreview(screen)
     renderGuidePreview(screen)
@@ -600,9 +601,9 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
                 if a=="plowModeToggle" then
                     ok,msg=GPSDisplaySettings.setPlowMode(not GPSConfig.plowModeEnabled)
                 else
-                    -- Plus increases spacing, displayed as -3 -> -4 -> -5.
-                    local step=a=="plowOverlapPlus" and -1 or 1
-                    ok,msg=GPSDisplaySettings.setPlowOverlapPercent((GPSConfig.plowOverlapPercent or -3)+step)
+                    -- Numeric +/- controls; cross 0% without skipping a value.
+                    local step=a=="plowOverlapPlus" and 1 or -1
+                    ok,msg=GPSDisplaySettings.setPlowOverlapPercent((GPSConfig.plowOverlapPercent or 0)+step)
                 end
                 GPSTrackPosition.lastUpdate=150
                 local vehicle=GPSVehicleDetector.getCurrentVehicle()
@@ -610,7 +611,7 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
                 local spacing=GPSImplementDetector.getLaneSpacing(vehicle)
                 info(screen,string.format("Pflug-Modus %s | %d%% | Arbeitsbreite %.2fm | Spuren %.2fm%s",
                     GPSConfig.plowModeEnabled and "AN" or "AUS",
-                    GPSConfig.plowOverlapPercent or -3,actual or 0,spacing or 0,
+                    GPSConfig.plowOverlapPercent or 0,actual or 0,spacing or 0,
                     ok and "" or " | Speicherung ausstehend"))
             elseif a=="toggleDeviceAuto" then
                 if GPSDeviceOffsetAuto and type(GPSDeviceOffsetAuto.setEnabled)=="function" then
