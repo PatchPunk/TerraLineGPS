@@ -3,6 +3,7 @@ GPSABLineManager={a=nil,b=nil,offsetMeters=0,minDistance=20,captureStage="idle"}
 function GPSABLineManager.clear()
     GPSABLineManager.a=nil;GPSABLineManager.b=nil;GPSABLineManager.offsetMeters=0
     GPSABLineManager.captureStage="idle"
+    GPSABLineManager.lastManualShiftAt=nil
 end
 function GPSABLineManager.getVehiclePoint()
     local vehicle=GPSVehicleDetector.getCurrentVehicle()
@@ -77,6 +78,9 @@ function GPSABLineManager.shiftDriverRelative(direction,meters,vehicle)
     local a=GPSABLineManager.a
     local oldX,oldZ=a and a.x,a and a.z
     local ok,msg=GPSABLineManager.shift(direction*sign,meters)
+    if ok then
+        GPSABLineManager.lastManualShiftAt=GPSFieldTest and GPSFieldTest.totalMs or 0
+    end
     if ok and GPSConfig and GPSConfig.showDiagnostics and GPSLogger then
         local movedX,movedZ=a.x-oldX,a.z-oldZ
         -- Print actual map translation, not merely the requested step value.
