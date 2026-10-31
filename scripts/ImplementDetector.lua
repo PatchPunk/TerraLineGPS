@@ -278,3 +278,27 @@ function GPSImplementDetector.logIfChanged(vehicle)
         GPSLogger.info(string.format("Anbaugeraet: %s | Breite %.2fm | Quelle: %s | erkannt=%s",name,w,src,tostring(detected)))
     end
 end
+
+-- Pflug-Modus: lane spacing (NOT physical working width) overlaps passes.
+-- Only a real plough can activate it. A packer alone remains normal.
+function GPSImplementDetector.hasAttachedPlow(vehicle)
+    if not vehicle or not GPSAttachmentClassifier or
+            type(GPSAttachmentClassifier.isPlow)~="function" then return false end
+    local objects={}
+    collect(vehicle,objects,{},0)
+    for _,obj in ipairs(objects) do
+        if GPSAttachmentClassifier.isPlow(obj) then return true end
+    end
+    return false
+end
+function GPSImplementDetector.getLaneSpacing(vehicle)
+    local width=GPSImplementDetector.getWidth(vehicle)
+    if type(width)~="number" or width<0.5 then return width end
+    if GPSConfig and GPSConfig.plowModeEnabled==true and
+            GPSImplementDetector.hasAttachedPlow(vehicle) then
+        local pct=tonumber(GPSConfig.plowOverlapPercent) or 3
+        pct=math.max(3,math.min(15,pct))
+        return width*(1-pct/100)
+    end
+    return width
+end

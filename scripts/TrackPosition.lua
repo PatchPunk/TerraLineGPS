@@ -72,8 +72,9 @@ function GPSTrackPosition.update(dt,vehicle)
         end
     end
     local workLive=live-autoCorrection
-    local track=math.floor(workLive/width+0.5)
-    local deviation=workLive-track*width
+    local spacing=GPSImplementDetector.getLaneSpacing(vehicle) or width
+    local track=math.floor(workLive/spacing+0.5)
+    local deviation=workLive-track*spacing
     -- Signed A/B deviation uses a fixed map normal; the HUD must instead
     -- report left/right from the driver's CURRENT heading (return pass too).
     local fx,_,fz=localDirectionToWorld(node,0,0,1)

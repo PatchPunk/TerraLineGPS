@@ -1,7 +1,8 @@
 -- TerraLine GPS: line visibility, ground height and optical thickness per savegame.
 -- New XML attributes use unique names; old experimental height/width are ignored.
 GPSDisplaySettings={loadedPath=nil,dirty=false,defaultStrokes=1,
-    defaultDurationSeconds=0,defaultHeightMeters=0.10,defaultThicknessMeters=0.00}
+    defaultDurationSeconds=0,defaultHeightMeters=0.10,defaultThicknessMeters=0.00,
+    defaultPlowMode=true,defaultPlowOverlapPercent=3}
 local M=GPSDisplaySettings
 local function clampStrokes(n)
     if type(n)~="number" or n~=n then return M.defaultStrokes end
@@ -20,6 +21,10 @@ local function clampThickness(n)
     if type(n)~="number" or n~=n then return M.defaultThicknessMeters end
     return math.floor(math.max(0,math.min(0.30,n))*100+0.5)/100
 end
+local function clampOverlap(percent)
+    if type(percent)~="number" or percent~=percent then return M.defaultPlowOverlapPercent end
+    return math.max(3,math.min(15,math.floor(percent+0.5)))
+end
 local function getPath()
     local info=g_currentMission and g_currentMission.missionInfo
     local folder=info and info.savegameDirectory
@@ -33,6 +38,8 @@ function M.reset()
     GPSConfig.lineDurationSeconds=M.defaultDurationSeconds
     GPSConfig.lineHeightMeters=M.defaultHeightMeters
     GPSConfig.lineThicknessMeters=M.defaultThicknessMeters
+    GPSConfig.plowModeEnabled=M.defaultPlowMode
+    GPSConfig.plowOverlapPercent=M.defaultPlowOverlapPercent
 end
 function M.ensureLoaded()
     local path=getPath()
@@ -42,16 +49,20 @@ function M.ensureLoaded()
     GPSConfig.lineDurationSeconds=M.defaultDurationSeconds
     GPSConfig.lineHeightMeters=M.defaultHeightMeters
     GPSConfig.lineThicknessMeters=M.defaultThicknessMeters
+    GPSConfig.plowModeEnabled=M.defaultPlowMode
+    GPSConfig.plowOverlapPercent=M.defaultPlowOverlapPercent
     if type(fileExists)~="function" or not fileExists(path) or type(loadXMLFile)~="function" then return end
     -- Failures in the GIANTS XML API must reach the game log rather than
     -- being swallowed by a protected call. The surrounding existence checks
     -- still handle savegames without an existing display configuration.
     local xml=loadXMLFile("TerraLineDisplay",path)
     if not xml or xml==0 then return end
-    local n,duration,height,thickness
+    local n,duration,height,thickness,mode,overlap
     if type(getXMLInt)=="function" then
         n=getXMLInt(xml,"terralineDisplay#strokes")
         duration=getXMLInt(xml,"terralineDisplay#lineDurationSeconds")
+        mode=getXMLInt(xml,"terralineDisplay#plowMode")
+        overlap=getXMLInt(xml,"terralineDisplay#plowOverlapPercent")
     end
     if type(getXMLFloat)=="function" then
         height=getXMLFloat(xml,"terralineDisplay#lineHeightMeters")
@@ -62,6 +73,8 @@ function M.ensureLoaded()
     GPSConfig.lineDurationSeconds=clampDuration(duration)
     GPSConfig.lineHeightMeters=clampHeight(height)
     GPSConfig.lineThicknessMeters=clampThickness(thickness)
+    GPSConfig.plowModeEnabled=(mode==nil) and M.defaultPlowMode or mode==1
+    GPSConfig.plowOverlapPercent=clampOverlap(overlap)
 end
 function M.save()
     local path=getPath()
@@ -82,6 +95,8 @@ function M.save()
     setXMLInt(xml,"terralineDisplay#lineDurationSeconds",clampDuration(GPSConfig.lineDurationSeconds))
     setXMLFloat(xml,"terralineDisplay#lineHeightMeters",clampHeight(GPSConfig.lineHeightMeters))
     setXMLFloat(xml,"terralineDisplay#lineThicknessMeters",clampThickness(GPSConfig.lineThicknessMeters))
+    setXMLInt(xml,"terralineDisplay#plowMode",GPSConfig.plowModeEnabled and 1 or 0)
+    setXMLInt(xml,"terralineDisplay#plowOverlapPercent",clampOverlap(GPSConfig.plowOverlapPercent))
     saveXMLFile(xml)
     if type(delete)=="function" then delete(xml) end
     M.dirty=false
@@ -116,6 +131,18 @@ function M.setDurationSeconds(seconds)
         GPSFieldTest.assistLinesActivatedAtMs=GPSFieldTest.totalMs or 0
     end
     return ok,msg
+end
+function M.setPlowMode(enabled)
+    M.ensureLoaded()
+    GPSConfig.plowModeEnabled=(enabled==true)
+    M.dirty=true
+    return M.save()
+end
+function M.setPlowOverlapPercent(percent)
+    M.ensureLoaded()
+    GPSConfig.plowOverlapPercent=clampOverlap(percent)
+    M.dirty=true
+    return M.save()
 end
 function M.restoreDefaults()
     M.ensureLoaded()

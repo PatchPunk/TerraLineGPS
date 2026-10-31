@@ -75,8 +75,9 @@ function GPSTrackRenderer.draw(_,vehicle)
         local track=GPSSteeringController.enabled and GPSSteeringController.lockedTrack or nil
         if track==nil and GPSTrackPosition.valid then track=GPSTrackPosition.track end
         if track==nil then return end
-        local baseX,baseZ=a.x+nx*(track*width+autoCorrection),
-                            a.z+nz*(track*width+autoCorrection)
+        local spacing=GPSImplementDetector.getLaneSpacing(vehicle) or width
+        local baseX,baseZ=a.x+nx*(track*spacing+autoCorrection),
+                            a.z+nz*(track*spacing+autoCorrection)
         local projected=(x-baseX)*ux+(z-baseZ)*uz
         cx,cz=baseX+ux*projected,baseZ+uz*projected
         -- Centerline and work-width preview borders share the steering target.
@@ -132,18 +133,16 @@ function GPSTrackRenderer.draw(_,vehicle)
     -- the saved A/B geometry. Also visible after closing the menu.
     local now=GPSFieldTest and GPSFieldTest.totalMs or 0
     local changed=GPSABLineManager.lastManualShiftAt
-    local manual=GPSABLineManager.offsetMeters or 0
+    local baseline=GPSABLineManager.manualShiftBaseline
     if type(changed)=="number" and now>=changed and now-changed<=8000
-            and math.abs(manual)>=0.05 then
-        local abX,abZ=b.x-a.x,b.z-a.z
-        local abLen=math.sqrt(abX*abX+abZ*abZ)
-        if abLen>0.001 then
-            local refX=cx-abZ/abLen*manual
-            local refZ=cz+abX/abLen*manual
-            line(terrain,refX,refZ,ux,uz,12,1.0,0.83,0.06,true)
-            line(terrain,refX,refZ,-ux,-uz,12,1.0,0.83,0.06,true)
-            local refY=groundY(terrain,refX,refZ)+0.13
-            local curY=groundY(terrain,cx,cz)+0.13
+            and baseline and type(baseline.x)=="number" and type(baseline.z)=="number" then
+        local shiftX,shiftZ=baseline.x-a.x,baseline.z-a.z
+        if shiftX*shiftX+shiftZ*shiftZ>=0.0025 then
+            local refX,refZ=cx+shiftX,cz+shiftZ
+            line(terrain,refX,refZ,ux,uz,30,0.98,0.98,0.98,true)
+            line(terrain,refX,refZ,-ux,-uz,30,0.98,0.98,0.98,true)
+            local refY=groundY(terrain,refX,refZ)+0.20
+            local curY=groundY(terrain,cx,cz)+0.20
             GPSLineVisuals.segment(refX,refY,refZ,cx,curY,cz,1.0,0.83,0.06)
         end
     end

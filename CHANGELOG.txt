@@ -1,3 +1,12 @@
+31.10.2026 - PFLUG-MODUS 3%+ UEBERLAPPUNG / MANUELLER VERSATZ (TESTBUILD)
+- Pflug-Modus standardmaessig AN, nur mit erkanntem Pflug aktiv (Packer allein reicht nicht).
+- Einstellbar von 3% bis 15%; bei 4.45m Arbeitsbreite erzeugen 3% 4.3165m Spurabstand.
+- Nur Abstand der parallelen Fahrspurzentren reduziert; reale Arbeitsbreite, Arbeitskanten und Geraete-Auto-Versatz unveraendert.
+- Pflug-Modus und Prozentwert koennen im Menue Seite 1 gesetzt und in terralineDisplay.xml gespeichert werden.
+- Nach manueller Verschiebung: gestrichelte helle Referenz auf die Ausgangsspur vor dem ersten Tastendruck (8 Sekunden); beseitigt fehlerhaften Referenzwert aus aufsummiertem gespeicherten Versatz.
+- Vorherige Pflug-/Packer-Erkennung, HUD, Lenkregelung und Bedienelemente bleiben erhalten.
+- Tests: Lua-Syntax und isolierte Berechnungstests; Spieltest und Mehrspieler noch ausstehend.
+
 31.10.2026 - VERSATZ: KALIBRIERUNG FIXIEREN / SPURVERSCHIEBUNG SICHTBAR (TESTBUILD)
 - Geraete-Auto uebernimmt eine bestaetigte Pflugmitte fest und folgt nicht mehr jeder kleinen AI-Marker-/Schwenkbewegung.
 - Plausibler Links-/Rechts-Seitenwechsel des Pflugs erfordert drei neue stabile Messungen bei Stillstand und GPS-Lenkung AUS.

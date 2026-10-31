@@ -4,6 +4,7 @@ function GPSABLineManager.clear()
     GPSABLineManager.a=nil;GPSABLineManager.b=nil;GPSABLineManager.offsetMeters=0
     GPSABLineManager.captureStage="idle"
     GPSABLineManager.lastManualShiftAt=nil
+    GPSABLineManager.manualShiftBaseline=nil
 end
 function GPSABLineManager.getVehiclePoint()
     local vehicle=GPSVehicleDetector.getCurrentVehicle()
@@ -77,9 +78,17 @@ function GPSABLineManager.shiftDriverRelative(direction,meters,vehicle)
     local sign,dot=GPSABLineManager.getDriverRightSign(vehicle)
     local a=GPSABLineManager.a
     local oldX,oldZ=a and a.x,a and a.z
+    local now=GPSFieldTest and GPSFieldTest.totalMs or 0
+    -- Keep the pre-shift line across repeated inputs (eight second window).
+    local previous=GPSABLineManager.lastManualShiftAt
+    local baseline=GPSABLineManager.manualShiftBaseline
+    if a and (not baseline or type(previous)~="number" or now-previous>8000) then
+        baseline={x=a.x,z=a.z}
+    end
     local ok,msg=GPSABLineManager.shift(direction*sign,meters)
     if ok then
-        GPSABLineManager.lastManualShiftAt=GPSFieldTest and GPSFieldTest.totalMs or 0
+        GPSABLineManager.manualShiftBaseline=baseline
+        GPSABLineManager.lastManualShiftAt=now
     end
     if ok and GPSConfig and GPSConfig.showDiagnostics and GPSLogger then
         local movedX,movedZ=a.x-oldX,a.z-oldZ

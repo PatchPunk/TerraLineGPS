@@ -102,8 +102,9 @@ local function captureActivationGeometry(vehicle,track)
                 d.phase="Geraete-Auto noch nicht bereit";return d
             end
         end
-        d.track=math.floor((live-autoCorrection)/d.width+0.5)
-        d.offset=live-autoCorrection-d.track*d.width
+        local spacing=GPSImplementDetector.getLaneSpacing(vehicle) or d.width
+        d.track=math.floor((live-autoCorrection)/spacing+0.5)
+        d.offset=live-autoCorrection-d.track*spacing
         d.deviceCorrection=autoCorrection
     end
     return d
@@ -235,7 +236,8 @@ function C.compute(vehicle,dt,mpMode)
     end
     -- Only the tractor steering target is displaced. A/B and its green
     -- working-center line and yellow work borders remain at their positions.
-    local offset=(x-a.x)*nx+(z-a.z)*nz-C.lockedTrack*width-autoCorrection
+    local spacing=GPSImplementDetector.getLaneSpacing(vehicle) or width
+    local offset=(x-a.x)*nx+(z-a.z)*nz-C.lockedTrack*spacing-autoCorrection
     info.deviceCorrection=autoCorrection
     info.phase="Spurabweichungspruefung";info.width=width;info.offset=offset
     if math.abs(offset)>(capture and captureOffsetLimit(width) or holdOffsetLimit(width)) then

@@ -14,5 +14,11 @@ function GPSTrackGenerator.generate(_,a,b,width)
     local dx,dz=b.x-a.x,b.z-a.z
     if dx*dx+dz*dz<400 then GPSTrackGenerator.info="A/B braucht mindestens 20 m";return end
     GPSTrackGenerator.ready=true
-    GPSTrackGenerator.info=string.format("Freie A/B-Spuren | %.2f m (ohne Feldkontur)",width)
+    local vehicle=GPSVehicleDetector and GPSVehicleDetector.getCurrentVehicle()
+    local spacing=GPSImplementDetector and GPSImplementDetector.getLaneSpacing(vehicle) or width
+    if type(spacing)=="number" and spacing<width-0.01 then
+        GPSTrackGenerator.info=string.format("Pflug-Modus | %.2f m Spuren (%.2f m Breite)",spacing,width)
+    else
+        GPSTrackGenerator.info=string.format("Freie A/B-Spuren | %.2f m (ohne Feldkontur)",width)
+    end
 end
