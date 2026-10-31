@@ -3,13 +3,15 @@
 -- operation and implement geometry replication still require an in-game test.
 -- The saved A/B work center, work-width borders and manual course shift
 -- MUST NOT move. Only the tractor's steering target is displaced by the
--- measured work-center offset. OFF by default; measurement only at rest.
+-- measured work-center offset. OFF by default; side-change calibration can
+-- run while moving (GPS steering OFF, tractor nearly parallel to the A/B).
 GPSDeviceOffsetAuto={enabled=false,center=nil,ready=false,lastA=nil,lastB=nil,
     lastVehicle=nil,candidate=nil,candidateCount=0,lastStatus="Aus",clock=0}
 local D=GPSDeviceOffsetAuto
 local function clearMeasurement()
     D.center=nil;D.ready=false;D.candidate=nil;D.candidateCount=0
     D.workMinX=nil;D.workMaxX=nil;D.workWidth=nil;D.comboKey=nil
+    D.calibratedDir=nil
 end
 function D.reset()
     D.enabled=false;D.lastA=nil;D.lastB=nil;D.lastVehicle=nil
@@ -21,7 +23,7 @@ end
 function D.onCourseMirrored()
     clearMeasurement()
     D.lastA=nil;D.lastB=nil;D.clock=1000
-    if D.enabled then D.lastStatus="Kurs geaendert: erneut im Stillstand messen" end
+    if D.enabled then D.lastStatus="Kurs geaendert: A/B-Ausrichtung abwarten" end
 end
 function D.getCorrection(vehicle,dir)
     if not D.enabled then return 0 end
@@ -30,6 +32,15 @@ function D.getCorrection(vehicle,dir)
         return nil
     end
     if dir~=1 and dir~=-1 then return nil end
+    -- A reversible plough must never use the previous pass's calibration.
+    -- The next line stays unavailable for steering until the new direction
+    -- has a verified work-center reading. Do not guess by negating the old X.
+    if D.calibratedDir~=nil and D.calibratedDir~=dir and
+            GPSImplementDetector and
+            type(GPSImplementDetector.hasAttachedPlow)=="function" and
+            GPSImplementDetector.hasAttachedPlow(vehicle) then
+        return nil
+    end
     -- A manual width change or newly measured mower combination must not
     -- reuse the earlier automatic steering correction.
     if type(D.workWidth)=="number" and GPSImplementDetector and
@@ -82,7 +93,7 @@ function D.setEnabled(state)
     D.lastA=GPSABLineManager.a;D.lastB=GPSABLineManager.b
     D.lastVehicle=vehicle
     D.clock=1000
-    D.lastStatus=D.enabled and "Messung abwarten: anhalten, GPS aus" or "Aus"
+    D.lastStatus=D.enabled and "Messung: parallel zur Spur fahren, GPS-Lenkung AUS" or "Aus"
     if GPSLogger then GPSLogger.info("Geraete-Auto "..(D.enabled and "AN (Lenkziel, A/B unveraendert)" or "AUS (kein gespeicherter Kursversatz)")) end
     return true,D.enabled and "Geraete-Auto AN: Arbeitsmitte wird gemessen" or "Geraete-Auto AUS: Normaler GPS-Modus"
 end
@@ -95,12 +106,18 @@ function D.update(dt,vehicle)
         D.clock=1000
     end
     if not a or not b or not vehicle then D.lastStatus="A/B oder Traktor fehlt";return end
-    -- Never change a locked steering target while GPS is active or moving.
+    -- Do not move an active steering target. Calibrate the next plough side
+    -- BEFORE the driver engages steering again, including during a slow,
+    -- almost straight headland exit (no standstill necessary).
     if GPSSteeringController and GPSSteeringController.enabled then return end
     local speed=type(vehicle.getLastSpeed)=="function" and math.abs(vehicle:getLastSpeed()) or 0
-    if speed>2 then D.lastStatus="Zum Einmessen anhalten";return end
+    if speed>18 then
+        D.candidate=nil;D.candidateCount=0
+        D.lastStatus="Geraete-Auto: zum Einmessen langsamer fahren (max 18 km/h)"
+        return
+    end
     D.clock=(D.clock or 0)+math.max(0,dt or 0)
-    if D.clock<900 then return end
+    if D.clock<250 then return end
     D.clock=0
     local node=GPSVehicleDetector.getPositionNode(vehicle)
     if not node then D.lastStatus="Traktorkoordinaten fehlen";return end
@@ -109,7 +126,11 @@ function D.update(dt,vehicle)
     local length=math.sqrt(dx*dx+dz*dz)
     if length<10 then D.lastStatus="A/B zu kurz";return end
     local alignment=(fx*dx+fz*dz)/length
-    if math.abs(alignment)<0.90 then D.lastStatus="Traktor parallel zu A/B ausrichten";return end
+    if math.abs(alignment)<0.95 then
+        D.candidate=nil;D.candidateCount=0
+        D.lastStatus="Geraete-Auto: zum Einmessen fast parallel zur A/B-Spur fahren"
+        return
+    end
     local isCombo,comboReady,comboLo,comboHi,comboWidth,comboReason,comboKey=
         GPSImplementDetector.getVerifiedMowerCombo(vehicle)
     if isCombo and not comboReady then
@@ -165,7 +186,8 @@ function D.update(dt,vehicle)
     -- A flexing plough can move its AI markers several centimetres while
     -- travelling. Once the 3-sample measurement is accepted, HOLD that
     -- geometry for steering and the UI. Recalibrate only after a genuine
-    -- left/right side flip while stopped and GPS steering is disengaged.
+    -- left/right side flip with GPS steering disengaged and stable geometry,
+    -- even when the tractor moves slowly. A/B points do not move.
     -- Attachment/width changes continue to invalidate through the existing
     -- getCorrection() checks; changing the device-auto toggle starts fresh.
     if D.ready and type(D.center)=="number" then
@@ -179,16 +201,16 @@ function D.update(dt,vehicle)
     end
     local sample=D.candidate
     if type(sample)=="table" and sample.key==comboKey and
-        math.abs(sample.center-center)<0.04 and
-        math.abs(sample.lo-lo)<0.04 and math.abs(sample.hi-hi)<0.04 and
-        math.abs(sample.width-width)<0.04 then
+        math.abs(sample.center-center)<0.08 and
+        math.abs(sample.lo-lo)<0.08 and math.abs(sample.hi-hi)<0.08 and
+        math.abs(sample.width-width)<0.05 then
         D.candidateCount=D.candidateCount+1
     else
         D.candidate={center=center,lo=lo,hi=hi,width=width,key=comboKey}
         D.candidateCount=1
         -- While verifying a plough side change, keep the previously
-        -- calibrated position. It is never applied to a moving/active turn
-        -- because this update path runs only with steering OFF at rest.
+        -- calibrated position. The new side is withheld from steering
+        -- until three stable, aligned samples have been obtained.
         if not D.ready then
             D.center=nil;D.workMinX=nil;D.workMaxX=nil
             D.workWidth=nil;D.comboKey=nil
@@ -201,8 +223,9 @@ function D.update(dt,vehicle)
     local previous=D.center
     D.center=center;D.workMinX=lo;D.workMaxX=hi;D.workWidth=width
     D.comboKey=comboKey;D.ready=true
+    D.calibratedDir=alignment>=0 and 1 or -1
     D.lastStatus=string.format("Bereit (fixiert): Geraetemitte %+.2fm",center)
     if previous==nil or math.abs(previous-center)>0.03 then
-        GPSLogger.info(string.format("Geraete-Auto BEREIT: Mitte=%+.2fm, Breite=%.2fm, Arbeitskanten=%+.2f..%+.2fm, Markersicher=%s | A/B unveraendert",center,width,lo,hi,tostring(complete)))
+        GPSLogger.info(string.format("Geraete-Auto BEREIT: Mitte=%+.2fm, Breite=%.2fm, Arbeitskanten=%+.2f..%+.2fm, Markersicher=%s | Geschwindigkeit=%.1fkm/h, Fahrtrichtung=%+d, A/B unveraendert",center,width,lo,hi,tostring(complete),speed,D.calibratedDir))
     end
 end

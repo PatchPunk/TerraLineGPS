@@ -1,3 +1,12 @@
+31.10.2026 - TESTBUILD: NEUE PFLUGSPUR OHNE ANHALTEN BEREITSTELLEN
+- Geraete-Auto misst nach dem Richtungswechsel schon waehrend langsamer Vorwaertsfahrt (bis 18 km/h) bei nahezu paralleler A/B-Ausrichtung (|cos| >= 0.95) und ausgeschalteter GPS-Lenkung.
+- Messintervall von 900 auf 250 Millisekunden, weiterhin drei stabile Geometrieproben; Toleranz der beweglichen AI-Marker auf 8 cm angepasst.
+- Sicherheitsregel: Ein Wendepflug darf die Kalibrierung der alten Fahrtrichtung nicht fuer die neue benutzen. Neue Spur/Lenkziel nur nach bestaetigter Richtungskalibrierung verfuegbar.
+- Keine dynamischen Korrekturen waehrend GPS aktiv lenkt, keine A/B-Verschiebung.
+- Erkennung von Pflug/Packer, 0%-Standard-Ueberlappung und frei waehlbarer +/- Ueberlappungswert unveraendert.
+- Diagnoselog zeigt Kalibrierungsgeschwindigkeit und Fahrtrichtung.
+- Testziel: Spur nach dem Wenden bereits in Fahrt sichtbar und erneute GPS-Aktivierung ohne Halt; LS25-Praxistest und MP-Test weiterhin offen.
+
 31.10.2026 - TESTBUILD: PFLUG-MODUS FREI WAEHLBAR, NULL STANDARD
 - Pflug-Modus: pro 1 Prozentpunkt ueber die bestehenden Minus-/Plus-Knoepfe frei von -50% bis +50% einstellbar; der Wert kann 0% durchlaufen.
 - Standard 0%: Abstand benachbarter Fahrspuren entspricht der tatsaechlichen Arbeitsbreite.
