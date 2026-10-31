@@ -39,6 +39,11 @@ function D.getCorrection(vehicle,dir)
     if D.comboKey~=nil and GPSImplementDetector.comboKey~=D.comboKey then
         return nil
     end
+    -- Do not start steering during an unresolved physical side change.
+    if D.candidate and type(D.candidate.center)=="number" and
+            type(D.center)=="number" and D.candidate.center*D.center<0 then
+        return nil
+    end
     -- A/B normal (-uz,+ux) points LEFT. Measured tractor-local x points
     -- RIGHT. Thus tractor target in A/B-normal coordinates = center*dir.
     return D.center*dir
@@ -151,6 +156,27 @@ function D.update(dt,vehicle)
         D.lastStatus=string.format("Arbeitsmitte %+.2fm ausserhalb sicherer Grenze %.2fm",center,maximum)
         clearMeasurement();return
     end
+    -- If the effective width or recognized mower layout changes, the old
+    -- fixed calibration is no longer valid and must be measured again.
+    if D.ready and ((type(D.workWidth)=="number" and math.abs(D.workWidth-width)>0.05)
+            or D.comboKey~=comboKey) then
+        clearMeasurement()
+    end
+    -- A flexing plough can move its AI markers several centimetres while
+    -- travelling. Once the 3-sample measurement is accepted, HOLD that
+    -- geometry for steering and the UI. Recalibrate only after a genuine
+    -- left/right side flip while stopped and GPS steering is disengaged.
+    -- Attachment/width changes continue to invalidate through the existing
+    -- getCorrection() checks; changing the device-auto toggle starts fresh.
+    if D.ready and type(D.center)=="number" then
+        local sideFlipped=(center*D.center<0 and
+            math.abs(center)>=0.45 and math.abs(D.center)>=0.45)
+        if not sideFlipped then
+            D.candidate=nil;D.candidateCount=0
+            D.lastStatus=string.format("Bereit (fixiert): Geraetemitte %+.2fm",D.center)
+            return
+        end
+    end
     local sample=D.candidate
     if type(sample)=="table" and sample.key==comboKey and
         math.abs(sample.center-center)<0.04 and
@@ -160,9 +186,13 @@ function D.update(dt,vehicle)
     else
         D.candidate={center=center,lo=lo,hi=hi,width=width,key=comboKey}
         D.candidateCount=1
-        -- Revoke the old release immediately if the geometry changes.
-        D.center=nil;D.ready=false;D.workMinX=nil;D.workMaxX=nil
-        D.workWidth=nil;D.comboKey=nil
+        -- While verifying a plough side change, keep the previously
+        -- calibrated position. It is never applied to a moving/active turn
+        -- because this update path runs only with steering OFF at rest.
+        if not D.ready then
+            D.center=nil;D.workMinX=nil;D.workMaxX=nil
+            D.workWidth=nil;D.comboKey=nil
+        end
     end
     if D.candidateCount<3 then
         D.lastStatus=string.format("Arbeitsgeometrie stabilisieren (%d/3)",D.candidateCount)
@@ -171,7 +201,7 @@ function D.update(dt,vehicle)
     local previous=D.center
     D.center=center;D.workMinX=lo;D.workMaxX=hi;D.workWidth=width
     D.comboKey=comboKey;D.ready=true
-    D.lastStatus=string.format("Bereit: Geraetemitte %+.2fm, Traktorversatz automatisch",center)
+    D.lastStatus=string.format("Bereit (fixiert): Geraetemitte %+.2fm",center)
     if previous==nil or math.abs(previous-center)>0.03 then
         GPSLogger.info(string.format("Geraete-Auto BEREIT: Mitte=%+.2fm, Breite=%.2fm, Arbeitskanten=%+.2f..%+.2fm, Markersicher=%s | A/B unveraendert",center,width,lo,hi,tostring(complete)))
     end
