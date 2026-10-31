@@ -127,5 +127,25 @@ function GPSTrackRenderer.draw(_,vehicle)
     line(terrain,lx,lz,-ux,-uz,backLeft,leftColor[1],leftColor[2],leftColor[3],sideDashed)
     line(terrain,rx,rz,ux,uz,rightLimit,leftColor[1],leftColor[2],leftColor[3],sideDashed)
     line(terrain,rx,rz,-ux,-uz,backRight,leftColor[1],leftColor[2],leftColor[3],sideDashed)
+    -- For eight seconds after a MANUAL shift, display the unshifted lane
+    -- center in yellow dashes for comparison. Never changes steering or
+    -- the saved A/B geometry. Also visible after closing the menu.
+    local now=GPSFieldTest and GPSFieldTest.totalMs or 0
+    local changed=GPSABLineManager.lastManualShiftAt
+    local manual=GPSABLineManager.offsetMeters or 0
+    if type(changed)=="number" and now>=changed and now-changed<=8000
+            and math.abs(manual)>=0.05 then
+        local abX,abZ=b.x-a.x,b.z-a.z
+        local abLen=math.sqrt(abX*abX+abZ*abZ)
+        if abLen>0.001 then
+            local refX=cx-abZ/abLen*manual
+            local refZ=cz+abX/abLen*manual
+            line(terrain,refX,refZ,ux,uz,12,1.0,0.83,0.06,true)
+            line(terrain,refX,refZ,-ux,-uz,12,1.0,0.83,0.06,true)
+            local refY=groundY(terrain,refX,refZ)+0.13
+            local curY=groundY(terrain,cx,cz)+0.13
+            GPSLineVisuals.segment(refX,refY,refZ,cx,curY,cz,1.0,0.83,0.06)
+        end
+    end
     GPSLineVisuals.finishFrame()
 end
