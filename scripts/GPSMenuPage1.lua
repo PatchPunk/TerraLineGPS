@@ -204,7 +204,13 @@ local function renderGuidePreview(screen)
     local valid = GPSABLineManager.a ~= nil and GPSABLineManager.b ~= nil
     local active = GPSSteeringController and GPSSteeringController.enabled
     local guideColor = valid and (active and C.accent or C.danger) or C.line
-    -- Yellow preview corridor and green tractor target move together.
+    -- Neutral dashed center = original ZERO-OFFSET reference. This makes
+    -- manual course movement visible directly while the GUI is open.
+    if valid then
+        dashLine(screen, cx - .0013, t + .093, .0026, h * .62, C.textMute, 8)
+        label(screen, cx, t + .089, "0", .014, C.textMute, false, "center")
+    end
+    -- Yellow preview corridor and colored current tractor target move together.
     dashLine(screen, guideX - half, t + .093, .002, h * .62, C.warn, 7)
     dashLine(screen, guideX + half, t + .093, .002, h * .62, C.warn, 7)
     -- Approved guidance preview: front mower and rear side mower on the RIGHT.
@@ -349,10 +355,15 @@ function GPSMenuPage1.draw(screen)
     do
         local probe = GPSDeviceOffsetProbe
         local autoDevice = GPSDeviceOffsetAuto
-        hint = (probe and type(probe.lastValue) == "number") and
-            string.format("Geraete-Mitte %+.2f m (Traktorsicht) | %s", probe.lastValue,
-                autoDevice and autoDevice.enabled and (autoDevice.lastStatus or "Automatik AN") or "Automatik AUS")
-            or "Geraete-Mitte noch nicht erkannt (Diagnose: gsGPSDeviceOffset)"
+        if autoDevice and autoDevice.enabled then
+            hint = autoDevice.ready and type(autoDevice.center)=="number" and
+                string.format("Geraete-Auto FIXIERT: %+.2f m (Traktorsicht)",autoDevice.center)
+                or (autoDevice.lastStatus or "Geraete-Auto: Messung ausstehend")
+        else
+            hint = (probe and type(probe.lastValue)=="number") and
+                string.format("Live-Messung %+.2f m (nur Diagnose) | Geraete-Auto AUS",probe.lastValue)
+                or "Geraete-Mitte noch nicht erkannt (Diagnose: gsGPSDeviceOffset)"
+        end
     end
     T.chrome(screen, {
         active = 1, master = true,
