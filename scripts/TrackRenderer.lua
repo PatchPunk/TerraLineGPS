@@ -128,13 +128,13 @@ function GPSTrackRenderer.draw(_,vehicle)
     line(terrain,lx,lz,-ux,-uz,backLeft,leftColor[1],leftColor[2],leftColor[3],sideDashed)
     line(terrain,rx,rz,ux,uz,rightLimit,leftColor[1],leftColor[2],leftColor[3],sideDashed)
     line(terrain,rx,rz,-ux,-uz,backRight,leftColor[1],leftColor[2],leftColor[3],sideDashed)
-    -- For eight seconds after a MANUAL shift, display the unshifted lane
+    -- For thirty seconds after a MANUAL shift, display the pre-shift lane
     -- center in yellow dashes for comparison. Never changes steering or
     -- the saved A/B geometry. Also visible after closing the menu.
     local now=GPSFieldTest and GPSFieldTest.totalMs or 0
     local changed=GPSABLineManager.lastManualShiftAt
     local baseline=GPSABLineManager.manualShiftBaseline
-    if type(changed)=="number" and now>=changed and now-changed<=8000
+    if type(changed)=="number" and now>=changed and now-changed<=30000
             and baseline and type(baseline.x)=="number" and type(baseline.z)=="number" then
         local shiftX,shiftZ=baseline.x-a.x,baseline.z-a.z
         if shiftX*shiftX+shiftZ*shiftZ>=0.0025 then

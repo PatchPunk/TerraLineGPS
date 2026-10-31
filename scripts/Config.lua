@@ -4,5 +4,5 @@ GPSConfig = {
     lineStrokes = 1, lineDurationSeconds = 0,
     lineHeightMeters = 0.10, lineThicknessMeters = 0.00, showDiagnostics = false,
     defaultWorkWidth = 3, terrainStepMeters = 2.0,
-    plowModeEnabled = true, plowOverlapPercent = 3
+    plowModeEnabled = true, plowOverlapPercent = -3
 }

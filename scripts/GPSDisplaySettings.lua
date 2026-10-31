@@ -2,7 +2,7 @@
 -- New XML attributes use unique names; old experimental height/width are ignored.
 GPSDisplaySettings={loadedPath=nil,dirty=false,defaultStrokes=1,
     defaultDurationSeconds=0,defaultHeightMeters=0.10,defaultThicknessMeters=0.00,
-    defaultPlowMode=true,defaultPlowOverlapPercent=3}
+    defaultPlowMode=true,defaultPlowOverlapPercent=-3}
 local M=GPSDisplaySettings
 local function clampStrokes(n)
     if type(n)~="number" or n~=n then return M.defaultStrokes end
@@ -23,7 +23,10 @@ local function clampThickness(n)
 end
 local function clampOverlap(percent)
     if type(percent)~="number" or percent~=percent then return M.defaultPlowOverlapPercent end
-    return math.max(3,math.min(15,math.floor(percent+0.5)))
+    -- Convert older positive overlap settings to the conservative -3% default.
+    -- Negative percentages increase the spacing between pass centers.
+    if percent>0 then percent=-3 end
+    return math.max(-5,math.min(-3,math.floor(percent+0.5)))
 end
 local function getPath()
     local info=g_currentMission and g_currentMission.missionInfo

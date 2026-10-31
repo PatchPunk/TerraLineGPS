@@ -79,10 +79,10 @@ function GPSABLineManager.shiftDriverRelative(direction,meters,vehicle)
     local a=GPSABLineManager.a
     local oldX,oldZ=a and a.x,a and a.z
     local now=GPSFieldTest and GPSFieldTest.totalMs or 0
-    -- Keep the pre-shift line across repeated inputs (eight second window).
+    -- Keep the pre-shift line across repeated inputs (30-second window).
     local previous=GPSABLineManager.lastManualShiftAt
     local baseline=GPSABLineManager.manualShiftBaseline
-    if a and (not baseline or type(previous)~="number" or now-previous>8000) then
+    if a and (not baseline or type(previous)~="number" or now-previous>30000) then
         baseline={x=a.x,z=a.z}
     end
     local ok,msg=GPSABLineManager.shift(direction*sign,meters)

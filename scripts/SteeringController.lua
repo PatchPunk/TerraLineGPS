@@ -153,7 +153,14 @@ function C.toggle(vehicle)
     end
     local off=math.abs(geometry.offset)
     local headingAbs=math.abs(math.rad(geometry.headingDeg))
-    local normal=off<=holdOffsetLimit(geometry.width) and headingAbs<=0.35
+    -- SP 40-60cm errors previously used the very gentle hold controller.
+    -- Switch to capture at >20cm or >3deg, without changing MP capture.
+    local oldNormal=off<=holdOffsetLimit(geometry.width) and headingAbs<=0.35
+    local missionInfo=g_currentMission and g_currentMission.missionDynamicInfo
+    local multiplayerSession=isMultiplayerClient() or
+        (missionInfo and missionInfo.isMultiplayer==true)
+    local normal=multiplayerSession and oldNormal or
+        (off<=0.20 and headingAbs<=math.rad(3))
     local acquiring=not normal
     if acquiring then
         -- Experimental capture must not alter the currently tested MP steering path.
@@ -293,13 +300,12 @@ function C.compute(vehicle,dt,mpMode)
             local projectedOffset=offset-dir*metersPerSecond*math.sin(heading)*leadSeconds
             info.captureProjectedOffset=projectedOffset
             info.captureLeadSeconds=leadSeconds
-            -- Slightly softer peak input only in capture; normal SP holding,
-            -- all MP steering, watchdogs and the 30 km/h total limit are unchanged.
-            desired=clamp((heading*1.10-projectedOffset*dir*0.23)*gainScale,-0.18,0.18)
+            -- SP capture only; MP and normal steering remain unchanged.
+            desired=clamp((heading*1.10-projectedOffset*dir*0.31)*gainScale,-0.20,0.20)
         else
             desired=clamp((heading*1.10-offset*dir*0.23)*gainScale,-0.22,0.22)
         end
-        maxDelta=0.00035*clamp(dt or 16,1,100)
+        maxDelta=(capture and 0.00042 or 0.00035)*clamp(dt or 16,1,100)
     end
     -- Rate limit to avoid abrupt wheel movements. dt is milliseconds.
     local command=C.lastValue+clamp(desired-C.lastValue,-maxDelta,maxDelta)

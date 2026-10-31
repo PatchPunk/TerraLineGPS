@@ -1,3 +1,12 @@
+31.10.2026 - TESTBUILD: PFLUG-MODUS -3% BIS -5% / SCHNELLERES EINSPUREN / MANUELLER VERSATZ
+- Pflug-Modus -3%, -4%, -5% statt bisher positiver Ueberlappung; 4.45m Pflugbreite ergibt 4.5835m bis 4.6725m Spurabstand.
+- Alte positive Werte in terralineDisplay.xml werden beim Laden auf -3% umgestellt. Das veraendert nicht die gemessene Geraetebreite.
+- Einzelspieler-Spurerfassung startet ab mehr als 20cm seitlicher Abweichung oder 3 Grad Kursfehler. SP-Capture-Lenkung leicht kraeftiger, Sicherheitsstopp bleibt.
+- Manueller Versatz: Menue-Start und STANDARD-Schaltflaeche setzen 0.50m (1/5/10cm weiterhin waehbar); Tastatur-Feinversatz bleibt 1cm.
+- Gegenueberstellung der alten und neuen Linie nach manuellem Verschieben 30 Sekunden statt 8 Sekunden.
+- Funktionierende Pflug-Packer-Erkennung, Geraete-Auto-Messung, gespeicherte Kurse und normaler MP-Lenkpfad unveraendert.
+- Isolierte Lua-Tests bestanden. Ein Spieltest und Multiplayer-Test sind fuer diese Aenderung noch offen.
+
 31.10.2026 - PFLUG-MODUS 3%+ UEBERLAPPUNG / MANUELLER VERSATZ (TESTBUILD)
 - Pflug-Modus standardmaessig AN, nur mit erkanntem Pflug aktiv (Packer allein reicht nicht).
 - Einstellbar von 3% bis 15%; bei 4.45m Arbeitsbreite erzeugen 3% 4.3165m Spurabstand.

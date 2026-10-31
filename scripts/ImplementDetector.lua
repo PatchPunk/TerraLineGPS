@@ -279,7 +279,7 @@ function GPSImplementDetector.logIfChanged(vehicle)
     end
 end
 
--- Pflug-Modus: lane spacing (NOT physical working width) overlaps passes.
+-- Pflug-Modus: negative overlap expands lane spacing; implement width stays untouched.
 -- Only a real plough can activate it. A packer alone remains normal.
 function GPSImplementDetector.hasAttachedPlow(vehicle)
     if not vehicle or not GPSAttachmentClassifier or
@@ -296,8 +296,9 @@ function GPSImplementDetector.getLaneSpacing(vehicle)
     if type(width)~="number" or width<0.5 then return width end
     if GPSConfig and GPSConfig.plowModeEnabled==true and
             GPSImplementDetector.hasAttachedPlow(vehicle) then
-        local pct=tonumber(GPSConfig.plowOverlapPercent) or 3
-        pct=math.max(3,math.min(15,pct))
+        local pct=tonumber(GPSConfig.plowOverlapPercent) or -3
+        if pct>0 then pct=-3 end
+        pct=math.max(-5,math.min(-3,pct))
         return width*(1-pct/100)
     end
     return width

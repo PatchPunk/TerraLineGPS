@@ -265,7 +265,7 @@ function GPSMenuPage1.onOpen(screen)
     screen.page1VisualSettings = false
     if GPSDisplaySettings then GPSDisplaySettings.ensureLoaded() end
     screen.widthStepIndex = screen.widthStepIndex or 1
-    screen.shiftStepIndex = screen.shiftStepIndex or 1
+    screen.shiftStepIndex = screen.shiftStepIndex or 4 -- default: 0.50m visible shift
     screen.nativeMessage = (GPSABLineManager.a and GPSABLineManager.b)
         and "Werte werden direkt uebernommen."
         or "Versatz: Zuerst A und B im Feld setzen (Alt+B zweimal)."
@@ -433,7 +433,7 @@ function GPSMenuPage1.draw(screen)
 
     -- Plough overlap controls in the existing working-width title bar.
     local enabled=GPSConfig.plowModeEnabled==true
-    local percent=math.max(3,math.min(15,GPSConfig.plowOverlapPercent or 3))
+    local percent=math.max(-5,math.min(-3,GPSConfig.plowOverlapPercent or -3))
     T.button(screen, x+.204, .158, .092, .031,
         enabled and "PFLUG AN" or "PFLUG AUS","plowModeToggle",
         {size=.015,selected=enabled})
@@ -471,7 +471,7 @@ local function refreshShiftedTracks()
 end
 local function shift(screen,sign)
     local steps={0.01,0.05,0.10,0.50}
-    local amount=steps[screen.shiftStepIndex or 1]
+    local amount=steps[screen.shiftStepIndex or 4]
     local direction=GPSMenuPage1.getDriverDirectionSign()
     -- Move the FULL course; match the keyboard's driver-right convention.
     local vehicle=GPSVehicleDetector.getCurrentVehicle()
@@ -600,8 +600,9 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
                 if a=="plowModeToggle" then
                     ok,msg=GPSDisplaySettings.setPlowMode(not GPSConfig.plowModeEnabled)
                 else
-                    local step=a=="plowOverlapPlus" and 1 or -1
-                    ok,msg=GPSDisplaySettings.setPlowOverlapPercent((GPSConfig.plowOverlapPercent or 3)+step)
+                    -- Plus increases spacing, displayed as -3 -> -4 -> -5.
+                    local step=a=="plowOverlapPlus" and -1 or 1
+                    ok,msg=GPSDisplaySettings.setPlowOverlapPercent((GPSConfig.plowOverlapPercent or -3)+step)
                 end
                 GPSTrackPosition.lastUpdate=150
                 local vehicle=GPSVehicleDetector.getCurrentVehicle()
@@ -609,7 +610,7 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
                 local spacing=GPSImplementDetector.getLaneSpacing(vehicle)
                 info(screen,string.format("Pflug-Modus %s | %d%% | Arbeitsbreite %.2fm | Spuren %.2fm%s",
                     GPSConfig.plowModeEnabled and "AN" or "AUS",
-                    GPSConfig.plowOverlapPercent or 3,actual or 0,spacing or 0,
+                    GPSConfig.plowOverlapPercent or -3,actual or 0,spacing or 0,
                     ok and "" or " | Speicherung ausstehend"))
             elseif a=="toggleDeviceAuto" then
                 if GPSDeviceOffsetAuto and type(GPSDeviceOffsetAuto.setEnabled)=="function" then
@@ -628,8 +629,8 @@ function GPSMenuPage1.onMouseClick(screen,px,top)
             elseif a=="reverseAB" then reverse(screen)
             elseif a=="mirrorOffset" then mirrorOffset(screen)
             elseif a=="resetSteps" then
-                screen.widthStepIndex=1;screen.shiftStepIndex=1
-                info(screen,"Schrittweiten auf 0.01 m zurueckgesetzt")
+                screen.widthStepIndex=1;screen.shiftStepIndex=4
+                info(screen,"Breitenschritt 0.01 m, Versatzschritt 0.50 m (Standard)")
             end
             return true
         end
