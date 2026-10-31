@@ -1,3 +1,13 @@
+31.10.2026 - VERSATZ: KALIBRIERUNG FIXIEREN / SPURVERSCHIEBUNG SICHTBAR (TESTBUILD)
+- Geraete-Auto uebernimmt eine bestaetigte Pflugmitte fest und folgt nicht mehr jeder kleinen AI-Marker-/Schwenkbewegung.
+- Plausibler Links-/Rechts-Seitenwechsel des Pflugs erfordert drei neue stabile Messungen bei Stillstand und GPS-Lenkung AUS.
+- Bis zum Abschluss der Seitenwechsel-Messung wird eine Aktivierung mit ungeklaerter Korrektur verhindert.
+- Menue zeigt bei aktivem Geraete-Auto den wirklich fuer die Lenkung fixierten Versatz statt der Live-Rohmessung.
+- Die Spurvorschau markiert die Nullspur als gestrichelte Referenz.
+- Nach manueller Spurverschiebung zeigt die Feldansicht acht Sekunden lang die Nullspur (gelb gestrichelt) und die Verbindung zur aktuellen Linie.
+- Vorherige Pflug-/Packer-Filterung, Steuerung, Arbeitsbreite, Fahrzeug-/Kursverwaltung und MP-Pfad unveraendert.
+- Lua-Syntax und isolierte Kalibrierungstests bestanden. Erneuter LS25-Spieltest erforderlich.
+
 30.10.2026 - MANUELLER SPURVERSATZ: ANGLEICHUNG UND DIAGNOSE (TESTBUILD)
 - Menue und Tastenkombinationen verwenden dieselbe fahrerbezogene Rechts-/Links-Berechnung.
 - Bei aktivierter Entwicklerdiagnose meldet jeder manuelle Versatz die tatsaechliche Verschiebung der A/B-Koordinaten in Welt-X/Welt-Z.
