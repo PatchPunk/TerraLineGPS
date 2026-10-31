@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Lua syntax (all 29 gameplay scripts)
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          find scripts -maxdepth 1 -name '*.lua' -print0 | xargs -0 -n 1 luac5.4 -p
       - name: Check and create FS25_TerraLineGPS.zip
         shell: bash
         run: |
